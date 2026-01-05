@@ -47,7 +47,7 @@
 }
 
 :root {
-  --radius: 0.625rem;
+  --radius: 0.375rem;
   
   /* Base - Zinc (Safe Default) */
   --background: oklch(1 0 0);
@@ -81,6 +81,8 @@
   --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
   --sidebar-border: oklch(0.92 0.004 286.32);
   --sidebar-ring: oklch(0.705 0.015 286.067);
+  /* App Shell (The 'Desk') -> Tinted Again */
+  --app-shell-bg: oklch(0.97 0.005 286.32);
 }
 
 .dark {
@@ -113,52 +115,60 @@
   --sidebar-primary-foreground: oklch(0.985 0 0);
   --sidebar-accent: oklch(0.274 0.006 286.033);
   --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.274 0.006 286.033);
   --sidebar-ring: oklch(0.442 0.017 285.786);
+  --app-shell-bg: oklch(0.1 0 0); /* Pure Black in Dark Mode */
 }
 
 /* Theme: Blue */
 [data-theme="blue"] {
-  --primary: oklch(0.45 0.15 250); /* Royal Blue */
+  --primary: oklch(0.45 0.15 250);
   --ring: oklch(0.45 0.15 250);
   --sidebar-primary: oklch(0.45 0.15 250);
+  --app-shell-bg: oklch(0.97 0.01 250); /* Very Subtle Sky White */
 }
 .dark[data-theme="blue"] {
   --primary: oklch(0.6 0.15 250);
   --ring: oklch(0.6 0.15 250);
+  --app-shell-bg: oklch(0.12 0.08 250); /* Deep Navy */
 }
 
 /* Theme: Green */
 [data-theme="green"] {
-  --primary: oklch(0.45 0.15 150); /* Emerald */
+  --primary: oklch(0.45 0.15 150);
   --ring: oklch(0.45 0.15 150);
   --sidebar-primary: oklch(0.45 0.15 150);
+  --app-shell-bg: oklch(0.975 0.01 150); /* Very Subtle Mint White */
 }
 .dark[data-theme="green"] {
   --primary: oklch(0.6 0.15 150);
   --ring: oklch(0.6 0.15 150);
+  --app-shell-bg: oklch(0.12 0.06 150); /* Deep Emerald */
 }
 
 /* Theme: Violet */
 [data-theme="violet"] {
-  --primary: oklch(0.45 0.2 290); /* Purple */
+  --primary: oklch(0.45 0.2 290);
   --ring: oklch(0.45 0.2 290);
   --sidebar-primary: oklch(0.45 0.2 290);
+  --app-shell-bg: oklch(0.975 0.01 290); /* Very Subtle Lavender White */
 }
 .dark[data-theme="violet"] {
   --primary: oklch(0.6 0.2 290);
   --ring: oklch(0.6 0.2 290);
+  --app-shell-bg: oklch(0.13 0.08 290); /* Deep Purple */
 }
 
 /* Theme: Orange */
 [data-theme="orange"] {
-  --primary: oklch(0.55 0.2 50); /* Burnt Orange */
+  --primary: oklch(0.55 0.2 50);
   --ring: oklch(0.55 0.2 50);
   --sidebar-primary: oklch(0.55 0.2 50);
+  --app-shell-bg: oklch(0.97 0.01 50); /* Very Subtle Peach White */
 }
 .dark[data-theme="orange"] {
   --primary: oklch(0.7 0.2 50);
   --ring: oklch(0.7 0.2 50);
+  --app-shell-bg: oklch(0.13 0.06 50); /* Deep Burnt Orange */
 }
 
 /* --- Standard Colors (Accent Change Only) --- */
@@ -168,10 +178,12 @@
   --primary: oklch(0.5 0.2 350);
   --ring: oklch(0.5 0.2 350);
   --sidebar-primary: oklch(0.5 0.2 350);
+  --app-shell-bg: oklch(0.97 0.01 350); /* Very Subtle Rose White */
 }
 .dark[data-theme="rose"] {
   --primary: oklch(0.65 0.2 350);
   --ring: oklch(0.65 0.2 350);
+  --app-shell-bg: oklch(0.13 0.08 350); /* Deep Burgundy */
 }
 
 /* Theme: Slate */
@@ -179,10 +191,12 @@
   --primary: oklch(0.4 0.05 260);
   --ring: oklch(0.4 0.05 260);
   --sidebar-primary: oklch(0.4 0.05 260);
+  --app-shell-bg: oklch(0.97 0.005 260); /* Clean Cool White */
 }
 .dark[data-theme="slate"] {
   --primary: oklch(0.6 0.05 260);
   --ring: oklch(0.6 0.05 260);
+  --app-shell-bg: oklch(0.12 0.04 260); /* Deep Slate */
 }
 
 /* --- Immersive Themes (Background + Accent + Foreground Tints) --- */

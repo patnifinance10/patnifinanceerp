@@ -14,29 +14,31 @@ import {
     LogOut,
     CreditCard,
     PieChart,
-    ShieldCheck
+    ShieldCheck,
+    ChevronRight,
+    Building2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const navGroups = [
     {
-        label: "Overview",
+        label: "Main",
         items: [
-            { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+            { title: "Home", href: "/dashboard", icon: LayoutDashboard },
+            { title: "Quick Collect", href: "/", icon: CreditCard },
         ]
     },
     {
-        label: "Operations",
+        label: "Loans",
         items: [
-            { title: "Counter", href: "/", icon: CreditCard },
-            { title: "New Loan", href: "/loans/new", icon: PlusCircle },
+            { title: "Create Loan", href: "/loans/new", icon: PlusCircle },
+            { title: "Loan List", href: "/loans", icon: PieChart },
             { title: "Statements", href: "/statements", icon: FileText },
         ]
     },
     {
-        label: "Management",
+        label: "People",
         items: [
-            { title: "Portfolio", href: "/loans", icon: PieChart },
             { title: "Customers", href: "/clients", icon: Users },
         ]
     },
@@ -54,29 +56,31 @@ export function AppSidebar({ className }: { className?: string }) {
     return (
         <aside
             className={cn(
-                "flex h-full w-[260px] flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border z-50 transition-all duration-300 font-sans tracking-wide",
+                "flex h-full w-[250px] flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border z-50 transition-all duration-300 font-sans tracking-wide shadow-xl",
                 className
             )}
         >
-            {/* 1. BRAND HEADER - Theme Aware */}
-            <div className="flex h-20 shrink-0 items-center px-6 border-b border-sidebar-border bg-sidebar/50 backdrop-blur-md">
-                <div className="h-9 w-9 rounded-xl bg-primary flex items-center justify-center mr-3 shadow-lg shadow-primary/20">
-                    <Landmark className="h-5 w-5 text-primary-foreground" />
+            {/* 1. BRAND HEADER - Robust ERP Style */}
+            <div className="flex h-16 shrink-0 items-center px-5 border-b border-sidebar-border bg-sidebar/95">
+                <div className="h-8 w-8 rounded bg-primary flex items-center justify-center mr-3 shadow-md">
+                    <Building2 className="h-5 w-5 text-primary-foreground" />
                 </div>
                 <div className="flex flex-col">
-                    <span className="text-lg font-bold tracking-tight text-sidebar-foreground leading-none">FinCorp</span>
-                    <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest mt-1">Enterprise</span>
+                    <span className="text-[10px] items-center flex gap-1 font-medium text-sidebar-foreground/60 tracking-wider mt-1">
+                        ERP v2.4
+                    </span>
                 </div>
             </div>
 
-            {/* 2. NAVIGATION - Spaced & Modern */}
-            <div className="flex-1 overflow-y-auto py-6 px-4 space-y-8 scrollbar-hide">
+            {/* 2. NAVIGATION - Dense & Professional */}
+            <div className="flex-1 overflow-y-auto py-6 px-3 space-y-8 scrollbar-hide">
                 {navGroups.map((group, groupIndex) => (
                     <div key={groupIndex}>
-                        <h4 className="mb-3 px-4 text-[10px] font-bold text-muted-foreground/70 uppercase tracking-widest">
+                        <h4 className="mb-2 px-3 text-[10px] font-bold text-sidebar-foreground/50 uppercase tracking-widest flex items-center gap-2">
                             {group.label}
+                            <div className="h-px bg-sidebar-border flex-1"></div>
                         </h4>
-                        <nav className="grid gap-1.5">
+                        <nav className="grid gap-1">
                             {group.items.map((item, index) => {
                                 const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
                                 return (
@@ -84,16 +88,17 @@ export function AppSidebar({ className }: { className?: string }) {
                                         key={index}
                                         href={item.href}
                                         className={cn(
-                                            "group flex items-center justify-between rounded-xl px-4 py-2.5 text-sm font-medium transition-all duration-300 relative overflow-hidden",
+                                            "group flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium transition-all duration-200",
                                             isActive
-                                                ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-md shadow-sidebar-primary/20"
-                                                : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                                                ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-sm"
+                                                : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                                         )}
                                     >
-                                        <div className="flex items-center gap-3 relative z-10">
-                                            <item.icon className={cn("h-[18px] w-[18px] transition-colors", isActive ? "text-sidebar-primary-foreground" : "text-muted-foreground group-hover:text-sidebar-accent-foreground")} />
+                                        <div className="flex items-center gap-3">
+                                            <item.icon className={cn("h-4 w-4", isActive ? "text-sidebar-primary-foreground" : "text-sidebar-foreground/70 group-hover:text-sidebar-accent-foreground")} />
                                             <span>{item.title}</span>
                                         </div>
+                                        {isActive && <ChevronRight className="h-3 w-3 opacity-50" />}
                                     </Link>
                                 );
                             })}
@@ -102,25 +107,23 @@ export function AppSidebar({ className }: { className?: string }) {
                 ))}
             </div>
 
-            {/* 3. USER PROFILE - Floating Style */}
-            <div className="p-4 border-t border-sidebar-border">
-                <div className="flex items-center gap-3 mb-4 px-2">
-                    <div className="h-9 w-9 rounded-full bg-sidebar-primary/10 flex items-center justify-center text-xs font-bold shadow-sm text-sidebar-primary border border-sidebar-primary/20">
+            {/* 3. USER PROFILE - Compact Footer */}
+            <div className="p-4 border-t border-sidebar-border bg-sidebar/50">
+                <div className="flex items-center gap-3 mb-4">
+                    <div className="h-8 w-8 rounded bg-sidebar-accent flex items-center justify-center text-xs font-bold text-sidebar-foreground border border-sidebar-border">
                         AD
                     </div>
                     <div className="flex flex-col">
-                        <span className="text-sm font-semibold text-sidebar-foreground">Admin User</span>
-                        <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                            <ShieldCheck className="h-3 w-3" /> Branch Manager
-                        </span>
+                        <span className="text-sm font-semibold text-sidebar-foreground">Administrator</span>
+                        <span className="text-[10px] text-sidebar-foreground/60">Head Office • Online</span>
                     </div>
                 </div>
                 <Button
                     variant="ghost"
-                    className="w-full justify-start text-muted-foreground hover:text-destructive hover:bg-destructive/10 h-9 px-2 text-xs font-medium tracking-wide transition-colors"
+                    className="w-full justify-start text-sidebar-foreground/70 hover:text-destructive hover:bg-destructive/10 h-8 px-2 text-xs font-medium tracking-wide transition-colors rounded-sm"
                 >
                     <LogOut className="mr-2 h-3.5 w-3.5" />
-                    Secure Logout
+                    Sign Out
                 </Button>
             </div>
         </aside>

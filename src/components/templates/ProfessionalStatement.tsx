@@ -20,9 +20,9 @@ interface StatementProps {
     company: CompanySettings;
 }
 
-export const ProfessionalStatement = ({ data, company }: StatementProps) => {
+export const ProfessionalStatement = React.forwardRef<HTMLDivElement, StatementProps>(({ data, company }, ref) => {
     return (
-        <div className="w-[210mm] min-h-[297mm] bg-white text-slate-800 font-sans mx-auto shadow-2xl flex flex-col box-border">
+        <div ref={ref} className="w-[210mm] min-h-[297mm] bg-white text-slate-800 font-sans mx-auto shadow-2xl flex flex-col box-border">
 
             {/* Top Bar */}
             <div className="bg-[#2c3e50] h-6 w-full mb-8"></div>
@@ -130,4 +130,6 @@ export const ProfessionalStatement = ({ data, company }: StatementProps) => {
             </div>
         </div>
     );
-};
+});
+
+ProfessionalStatement.displayName = "ProfessionalStatement";

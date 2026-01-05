@@ -65,9 +65,9 @@ export const ProfessionalTemplate = ({ data, company }: ReceiptProps) => {
                     <div>
                         <p className="text-xs font-bold text-gray-400 uppercase mb-4">Payment Mode</p>
                         <div className="flex gap-4">
-                            <div className="border border-gray-300 px-4 py-2 rounded text-gray-500">Cash</div>
-                            <div className="border border-gray-300 px-4 py-2 rounded text-gray-500">Cheque</div>
-                            <div className="bg-[#2c3e50] text-white px-4 py-2 rounded font-bold">Online</div>
+                            <div className={`px-4 py-2 rounded border ${data.paymentMode === 'cash' ? 'bg-[#2c3e50] text-white font-bold' : 'border-gray-300 text-gray-500'}`}>Cash</div>
+                            <div className={`px-4 py-2 rounded border ${['cheque', 'bank'].includes(data.paymentMode) ? 'bg-[#2c3e50] text-white font-bold' : 'border-gray-300 text-gray-500'}`}>Cheque/Bank</div>
+                            <div className={`px-4 py-2 rounded border ${['online', 'upi', 'netbanking', 'wallet'].includes(data.paymentMode) ? 'bg-[#2c3e50] text-white font-bold' : 'border-gray-300 text-gray-500'}`}>Online/UPI</div>
                         </div>
                     </div>
                 </div>

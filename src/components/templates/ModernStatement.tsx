@@ -140,11 +140,16 @@ export const ModernStatement = ({ data, company }: StatementProps) => {
                 <div className="flex justify-between items-end">
                     <div className="text-xs text-slate-400">
                         <p>Generated on {format(new Date(), "dd MMM yyyy, hh:mm a")}</p>
-                        <p>This is a computer generated statement.</p>
+                        {company.showComputerGenerated && (
+                            <p>{company.computerGeneratedText || "This is a computer generated statement."}</p>
+                        )}
                     </div>
                     <div className="text-right">
-                        <p className="text-slate-400 text-xs text-right mb-4">Authorized Signatory</p>
-                        <p className="font-bold text-slate-700 uppercase tracking-widest">{company.name}</p>
+                        {company.showSignatory && (
+                            <>
+                                <p className="text-slate-400 text-xs text-right mb-4">{company.signatoryText || "Authorized Signatory"}</p>
+                            </>
+                        )}
                     </div>
                 </div>
             </div>

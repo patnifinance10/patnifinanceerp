@@ -11,7 +11,9 @@ import {
     Filter,
     X,
     ChevronRight,
-    Home
+    Home,
+    Pencil,
+    Trash2
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -20,6 +22,22 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table";
 import { MOCK_LOANS } from "@/lib/mock-data";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -30,7 +48,7 @@ import { format } from "date-fns";
 import { useSettings } from "@/components/providers/settings-provider";
 import { getTemplate } from "@/components/templates/registry";
 import { generateLedger } from "@/lib/ledger-utils";
-
+import { useEffect } from "react";
 export default function StatementsPage() {
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedLoanNumber, setSelectedLoanNumber] = useState<string | null>(null);
@@ -78,9 +96,29 @@ export default function StatementsPage() {
     const transactions = getFilteredTransactions();
 
     // Prepare data
-    const ledgerEntries = selectedClient ? generateLedger(selectedClient) : [];
+    const [ledgerEntries, setLedgerEntries] = useState<any[]>([]);
+    const [isEditing, setIsEditing] = useState(false);
 
-    // Calculate Totals
+    // Initialize Ledger when client is selected
+    useEffect(() => {
+        if (selectedClient) {
+            const generated = generateLedger(selectedClient);
+            // Enrich with Penalty if missing or just defaults
+            const enrich = generated.map((t, idx) => ({
+                id: idx, // stable temp id
+                ...t,
+                penalty: (t as any).penalty || 0,
+                // Ensure components exist
+                principalComponent: t.principalComponent || 0,
+                interestComponent: t.interestComponent || 0
+            }));
+            setLedgerEntries(enrich);
+        } else {
+            setLedgerEntries([]);
+        }
+    }, [selectedClient]);
+
+    // Calculate Totals based on current 'ledgerEntries' state
     const totalInterest = ledgerEntries.reduce((sum, t) => sum + (t.type === 'Interest' ? t.debit : 0), 0);
     const totalPaid = ledgerEntries.reduce((sum, t) => sum + t.credit, 0);
     const closingBalance = ledgerEntries.length > 0 ? ledgerEntries[ledgerEntries.length - 1].balance : 0;
@@ -99,24 +137,30 @@ export default function StatementsPage() {
         totalPaid: totalPaid,
         closingBalance: closingBalance,
         transactions: ledgerEntries.map(t => ({
-            date: t.date,
-            type: t.type,
+            ...t,
             amount: t.credit > 0 ? t.credit : t.debit,
             isPayment: t.credit > 0,
-            ref: t.refNo,
-            refNo: t.refNo,
-            principalComponent: t.principalComponent,
-            interestComponent: t.interestComponent,
-            penalty: 0,
+            ref: t.refNo, // For legacy template compat
             balanceAfter: t.balance
         }))
     } : null;
+
+    const handleUpdateEntry = (index: number, field: string, value: any) => {
+        const updated = [...ledgerEntries];
+        updated[index] = { ...updated[index], [field]: value };
+        setLedgerEntries(updated);
+    };
+
+    const handleDeleteEntry = (index: number) => {
+        const updated = ledgerEntries.filter((_, i) => i !== index);
+        setLedgerEntries(updated);
+    };
 
     const [isSidebarHovered, setIsSidebarHovered] = useState(false);
     const isCollapsed = !!selectedLoanNumber && !isSidebarHovered;
 
     return (
-        <div className="-m-6 md:-m-8 w-[calc(100%+3rem)] md:w-[calc(100%+4rem)] h-[calc(100vh-5rem)] bg-background flex flex-col md:flex-row overflow-hidden border-t divide-x">
+        <div className="-m-6 md:-m-8 w-[calc(100%+3rem)] md:w-[calc(100%+4rem)] h-[calc(100vh-1rem)] bg-background flex flex-col md:flex-row overflow-hidden border-t divide-x">
 
             {/* LEFT SIDEBAR: Search & List */}
             <div
@@ -264,6 +308,11 @@ export default function StatementsPage() {
                                     )}
                                 </div>
 
+                                <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs ml-2" onClick={() => setIsEditing(true)}>
+                                    <Pencil className="h-3.5 w-3.5" />
+                                    Edit Data
+                                </Button>
+
                                 <Button size="sm" className="h-8 gap-1.5 shadow-sm text-xs ml-2" onClick={() => handlePrint()}>
                                     <Printer className="h-3.5 w-3.5" />
                                     Print
@@ -298,6 +347,97 @@ export default function StatementsPage() {
                                     </div>
                                 )}
                             </div>
+
+                            <Dialog open={isEditing} onOpenChange={setIsEditing}>
+                                <DialogContent className="max-w-[95vw] w-full sm:max-w-7xl max-h-[85vh] overflow-y-auto">
+                                    <DialogHeader className="pb-4 border-b">
+                                        <DialogTitle className="text-xl">Edit Statement Data</DialogTitle>
+                                        <DialogDescription className="text-base">
+                                            Modify the transaction details below. These changes will appear on the printed statement.
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                    <div className="rounded-md border mt-4">
+                                        <Table>
+                                            <TableHeader className="bg-muted/50">
+                                                <TableRow>
+                                                    <TableHead className="w-[160px] text-sm font-semibold">Date</TableHead>
+                                                    <TableHead className="min-w-[350px] text-sm font-semibold">Particulars</TableHead>
+                                                    <TableHead className="w-[120px] text-sm font-semibold">Ref No</TableHead>
+                                                    <TableHead className="text-right w-[140px] text-sm font-semibold">Principal</TableHead>
+                                                    <TableHead className="text-right w-[140px] text-sm font-semibold">Interest</TableHead>
+                                                    <TableHead className="text-right w-[140px] text-sm font-semibold">Penalty</TableHead>
+                                                    <TableHead className="w-[50px]"></TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {ledgerEntries.map((entry, index) => (
+                                                    <TableRow key={index} className="hover:bg-muted/30 group/row">
+                                                        <TableCell className="p-2">
+                                                            <Input
+                                                                value={entry.date}
+                                                                onChange={(e) => handleUpdateEntry(index, 'date', e.target.value)}
+                                                                className="h-10 text-sm"
+                                                            />
+                                                        </TableCell>
+                                                        <TableCell className="p-2">
+                                                            <Input
+                                                                value={entry.particulars}
+                                                                onChange={(e) => handleUpdateEntry(index, 'particulars', e.target.value)}
+                                                                className="h-10 text-sm font-medium"
+                                                            />
+                                                        </TableCell>
+                                                        <TableCell className="p-2">
+                                                            <Input
+                                                                value={entry.refNo || ''}
+                                                                onChange={(e) => handleUpdateEntry(index, 'refNo', e.target.value)}
+                                                                className="h-10 text-sm"
+                                                            />
+                                                        </TableCell>
+                                                        <TableCell className="p-2">
+                                                            <Input
+                                                                type="number"
+                                                                value={entry.principalComponent}
+                                                                onChange={(e) => handleUpdateEntry(index, 'principalComponent', parseFloat(e.target.value))}
+                                                                className="h-10 text-sm text-right font-mono"
+                                                            />
+                                                        </TableCell>
+                                                        <TableCell className="p-2">
+                                                            <Input
+                                                                type="number"
+                                                                value={entry.interestComponent}
+                                                                onChange={(e) => handleUpdateEntry(index, 'interestComponent', parseFloat(e.target.value))}
+                                                                className="h-10 text-sm text-right font-mono"
+                                                            />
+                                                        </TableCell>
+                                                        <TableCell className="p-2">
+                                                            <Input
+                                                                type="number"
+                                                                value={entry.penalty}
+                                                                onChange={(e) => handleUpdateEntry(index, 'penalty', parseFloat(e.target.value))}
+                                                                className="h-10 text-sm text-right font-mono"
+                                                            />
+                                                        </TableCell>
+                                                        <TableCell className="p-2 text-center">
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-8 w-8 text-muted-foreground hover:text-red-500 hover:bg-red-50 opacity-0 group-hover/row:opacity-100 transition-opacity"
+                                                                onClick={() => handleDeleteEntry(index)}
+                                                                title="Delete Row"
+                                                            >
+                                                                <Trash2 className="h-4 w-4" />
+                                                            </Button>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
+                                    <div className="flex justify-end pt-4">
+                                        <Button onClick={() => setIsEditing(false)}>Done</Button>
+                                    </div>
+                                </DialogContent>
+                            </Dialog>
                         </main>
                     </>
                 ) : (

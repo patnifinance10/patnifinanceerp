@@ -142,7 +142,9 @@ export const BoldStatement = ({ data, company }: StatementProps) => {
                 </div>
                 <div className="text-right">
                     <div className="h-10 border-b border-white/30 w-40 mb-2"></div>
-                    <p className="text-[10px] uppercase font-bold">Authorized Signatory</p>
+                    {company.showSignatory && (
+                        <p className="text-[10px] uppercase font-bold">{company.signatoryText || "Authorized Signatory"}</p>
+                    )}
                 </div>
             </div>
         </div>

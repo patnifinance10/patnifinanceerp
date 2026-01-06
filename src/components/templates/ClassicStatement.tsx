@@ -121,16 +121,15 @@ export const ClassicStatement = ({ data, company }: StatementProps) => {
                     {(data.transactions || []).map((txn, i) => (
                         <tr key={i}>
                             <td className="border border-black p-2 whitespace-nowrap">{format(new Date(txn.date), "dd-MMM-yyyy")}</td>
-                            <td className="border border-black p-2">{txn.type === 'Disbursal' ? 'Loan Disbursal' : txn.type}</td>
+                            <td className="border border-black p-2">{txn.particulars || (txn.type === 'Disbursal' ? 'Loan Disbursal' : txn.type)}</td>
                             <td className="border border-black p-2">{txn.refNo || '-'}</td>
                             <td className="border border-black p-2 text-right">
                                 {txn.principalComponent ? Number(txn.principalComponent).toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '-'}
                             </td>
                             <td className="border border-black p-2 text-right">
-                                {/* Show Interest Component OR Interest Debit Amount */}
-                                {txn.type === 'Interest'
-                                    ? Number(txn.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })
-                                    : (txn.interestComponent ? Number(txn.interestComponent).toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '-')
+                                {txn.interestComponent
+                                    ? Number(txn.interestComponent).toLocaleString('en-IN', { minimumFractionDigits: 2 })
+                                    : '-'
                                 }
                             </td>
                             <td className="border border-black p-2 text-right">
@@ -169,32 +168,36 @@ export const ClassicStatement = ({ data, company }: StatementProps) => {
                 </div>
             </div>
 
-            <div className="mt-auto text-center text-xs">
-                <p>This is a computer generated statement and does not require a signature.</p>
-                <p className="font-bold mt-1">END OF STATEMENT</p>
-                <p className="mt-4 italic text-[10px]">
-                    "I/We hereby certify that the particulars furnished above are true and correct as per our books of accounts."
-                </p>
-                <div className="mt-2 font-bold uppercase border-t border-black inline-block pt-1 px-4">
-                    Subject to {company.address ? company.address.split(',').pop()?.trim() : 'Local'} Jurisdiction
-                </div>
+            <div className="mt-auto text-center text-xs space-y-2">
+                {company.showComputerGenerated && (
+                    <p>{company.computerGeneratedText || "This is a computer generated statement and does not require a signature."}</p>
+                )}
+                {company.showStatementEnd && (
+                    <p className="font-bold mt-1">{company.statementEndText || "END OF STATEMENT"}</p>
+                )}
+                {company.showCertification && (
+                    <p className="mt-4 italic text-[10px]">
+                        "{company.certificationText || 'I/We hereby certify that the particulars furnished above are true and correct as per our books of accounts.'}"
+                    </p>
+                )}
+                {company.showJurisdiction && (
+                    <div className="mt-2 font-bold uppercase border-t border-black inline-block pt-1 px-4">
+                        {company.jurisdictionText || "Subject to Jurisdiction"}
+                    </div>
+                )}
             </div>
 
             {/* Legal / Court Signatory Section */}
-            <div className="mt-8 flex justify-between items-end pb-8 break-inside-avoid">
-                <div className="text-center w-64">
-                    <div className="h-20 border-b border-black mb-2"></div>
-                    <div className="font-bold text-sm">Customer Signature</div>
-                    <div className="text-[10px]">(I accept this statement as correct)</div>
-                </div>
-                <div className="text-center w-64">
-                    <div className="h-20 mb-2 flex items-end justify-center pb-2">
-                        <span className="text-gray-400 text-xs">[Stamp / Seal]</span>
+            {company.showSignatory && (
+                <div className="mt-8 flex justify-end items-end pb-8 break-inside-avoid">
+                    <div className="text-center w-64">
+                        <div className="h-20 mb-2 flex items-end justify-center pb-2">
+                            <span className="text-gray-400 text-xs">[Stamp / Seal]</span>
+                        </div>
+                        <div className="border-t border-black pt-2 font-bold text-sm">{company.signatoryText || "Authorized Signatory"}</div>
                     </div>
-                    <div className="border-t border-black pt-2 font-bold text-sm">Authorized Signatory</div>
-                    <div className="text-[10px]">{company.name}</div>
                 </div>
-            </div>
+            )}
         </div>
     );
 };

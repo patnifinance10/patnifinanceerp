@@ -41,6 +41,7 @@ import { useReactToPrint } from "react-to-print";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Menu } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 
 // Templates Registry
 import { TEMPLATE_REGISTRY } from "@/components/templates/registry";
@@ -52,7 +53,7 @@ export default function SettingsPage() {
     const [mounted, setMounted] = useState(false);
     const [colorTheme, setColorTheme] = useState("zinc");
     const [formData, setFormData] = useState(companySettings);
-    const [previewMode, setPreviewMode] = useState<"receipt" | "statement">("receipt");
+    const [previewMode, setPreviewMode] = useState<"receipt" | "statement" | "disbursal">("receipt");
 
     // Print Logic
     const printRef = useRef<HTMLDivElement>(null);
@@ -65,9 +66,13 @@ export default function SettingsPage() {
     });
 
     const triggerPreviewPrint = (Component: any) => {
+        let data: any = receiptData;
+        if (previewMode === "statement") data = statementData;
+        if (previewMode === "disbursal") data = disbursalData;
+
         setTempPrintComponent(
             <Component
-                data={previewMode === "receipt" ? receiptData : statementData}
+                data={data}
                 company={formData}
             />
         );
@@ -118,6 +123,26 @@ export default function SettingsPage() {
         ]
     };
 
+    const disbursalData = {
+        loanAccountNo: "LN-2024-001",
+        customerName: "Rahul Sharma",
+        address: "123, Gandhi Nagar, Delhi - 110001",
+        mobile: "+91 9876543210",
+        disbursedDate: "2024-01-01",
+        loanAmount: 500000,
+        interestRate: 12,
+        tenureMonths: 24,
+        emiAmount: 23537,
+        processingFee: 5000,
+        netDisbursal: 495000,
+        loanScheme: 'EMI',
+        interestPaidInAdvance: false,
+        paymentModes: [
+            { type: "IMPS", amount: "200000", reference: "IMPS123456" },
+            { type: "NEFT", amount: "295000", reference: "NEFT123456" }
+        ]
+    };
+
     const allThemes = [
         { type: "Standard", id: "zinc", name: "Zinc", color: "bg-zinc-600", desc: "Classic" },
         { type: "Standard", id: "slate", name: "Slate", color: "bg-slate-600", desc: "Pro" },
@@ -133,8 +158,15 @@ export default function SettingsPage() {
 
     if (!mounted) return null;
 
+    // Helper to get correct mock data
+    const getPreviewData = (mode: string) => {
+        if (mode === "receipt") return receiptData;
+        if (mode === "statement") return statementData;
+        return disbursalData;
+    };
+
     return (
-        <div className="-m-6 md:-m-8 w-[calc(100%+3rem)] md:w-[calc(100%+4rem)] h-[calc(100vh-5rem)] overflow-y-auto bg-muted/5 relative">
+        <div className="-m-6 md:-m-8 w-[calc(100%+3rem)] md:w-[calc(100%+4rem)] h-[calc(100vh-1rem)] overflow-y-auto bg-muted/5 relative">
 
             {/* Ambient Background Gradient */}
             <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
@@ -259,6 +291,124 @@ export default function SettingsPage() {
                     </div>
                 </section>
 
+                {/* --- STATEMENT CONFIGURATION SECTION --- */}
+                <section className="space-y-6 pt-8">
+                    <div className="flex items-center justify-between border-b pb-4">
+                        <h2 className="text-xl font-semibold flex items-center gap-2">
+                            <FileText className="h-5 w-5 text-primary" /> Statement Configuration
+                        </h2>
+                    </div>
+
+                    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-5 duration-600">
+                        {/* Split Row: Signatory Toggle */}
+                        <div className="grid md:grid-cols-3 gap-8 items-start">
+                            <div className="space-y-1">
+                                <Label className="text-base font-semibold">Authorized Signatory</Label>
+                                <p className="text-sm text-muted-foreground">Show or hide the signatory block on statements.</p>
+                            </div>
+                            <div className="md:col-span-2 flex items-center gap-4">
+                                <Switch
+                                    checked={formData.showSignatory}
+                                    onCheckedChange={(c) => setFormData({ ...formData, showSignatory: c })}
+                                />
+                                <span className="text-sm font-medium">{formData.showSignatory ? 'Shown' : 'Hidden'}</span>
+                            </div>
+                        </div>
+
+                        {formData.showSignatory && (
+                            <>
+                                <Separator />
+                                {/* Split Row: Signatory Text */}
+                                <div className="grid md:grid-cols-3 gap-8 items-start">
+                                    <div className="space-y-1">
+                                        <Label className="text-base font-semibold">Signatory Label</Label>
+                                        <p className="text-sm text-muted-foreground">Custom text for the signatory field (e.g., 'Manager', 'Partner').</p>
+                                    </div>
+                                    <div className="md:col-span-2">
+                                        <Input
+                                            value={formData.signatoryText}
+                                            onChange={(e) => setFormData({ ...formData, signatoryText: e.target.value })}
+                                            className="max-w-md h-11 bg-background"
+                                            placeholder="Authorized Signatory"
+                                        />
+                                    </div>
+                                </div>
+                            </>
+                        )}
+
+                        <Separator />
+                        <h3 className="text-lg font-medium pt-2">Legal Disclaimers</h3>
+
+                        {/* Computer Generated */}
+                        <div className="grid md:grid-cols-3 gap-8 items-start">
+                            <div className="space-y-1">
+                                <Label className="text-base font-semibold">Computer Generated Msg</Label>
+                                <p className="text-sm text-muted-foreground">"This is a computer generated..."</p>
+                            </div>
+                            <div className="md:col-span-2 space-y-3">
+                                <div className="flex items-center gap-4">
+                                    <Switch checked={formData.showComputerGenerated} onCheckedChange={(c) => setFormData({ ...formData, showComputerGenerated: c })} />
+                                    <span className="text-sm font-medium">{formData.showComputerGenerated ? 'Shown' : 'Hidden'}</span>
+                                </div>
+                                {formData.showComputerGenerated && (
+                                    <Input value={formData.computerGeneratedText} onChange={(e) => setFormData({ ...formData, computerGeneratedText: e.target.value })} className="bg-background" />
+                                )}
+                            </div>
+                        </div>
+
+                        {/* End of Statement */}
+                        <div className="grid md:grid-cols-3 gap-8 items-start">
+                            <div className="space-y-1">
+                                <Label className="text-base font-semibold">Statement End Marker</Label>
+                                <p className="text-sm text-muted-foreground">"END OF STATEMENT"</p>
+                            </div>
+                            <div className="md:col-span-2 space-y-3">
+                                <div className="flex items-center gap-4">
+                                    <Switch checked={formData.showStatementEnd} onCheckedChange={(c) => setFormData({ ...formData, showStatementEnd: c })} />
+                                    <span className="text-sm font-medium">{formData.showStatementEnd ? 'Shown' : 'Hidden'}</span>
+                                </div>
+                                {formData.showStatementEnd && (
+                                    <Input value={formData.statementEndText} onChange={(e) => setFormData({ ...formData, statementEndText: e.target.value })} className="bg-background" />
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Certification */}
+                        <div className="grid md:grid-cols-3 gap-8 items-start">
+                            <div className="space-y-1">
+                                <Label className="text-base font-semibold">Certification Text</Label>
+                                <p className="text-sm text-muted-foreground">"I/We hereby certify..."</p>
+                            </div>
+                            <div className="md:col-span-2 space-y-3">
+                                <div className="flex items-center gap-4">
+                                    <Switch checked={formData.showCertification} onCheckedChange={(c) => setFormData({ ...formData, showCertification: c })} />
+                                    <span className="text-sm font-medium">{formData.showCertification ? 'Shown' : 'Hidden'}</span>
+                                </div>
+                                {formData.showCertification && (
+                                    <Textarea value={formData.certificationText} onChange={(e) => setFormData({ ...formData, certificationText: e.target.value })} className="bg-background h-20" />
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Jurisdiction */}
+                        <div className="grid md:grid-cols-3 gap-8 items-start">
+                            <div className="space-y-1">
+                                <Label className="text-base font-semibold">Jurisdiction Clause</Label>
+                                <p className="text-sm text-muted-foreground">Legal jurisdiction location.</p>
+                            </div>
+                            <div className="md:col-span-2 space-y-3">
+                                <div className="flex items-center gap-4">
+                                    <Switch checked={formData.showJurisdiction} onCheckedChange={(c) => setFormData({ ...formData, showJurisdiction: c })} />
+                                    <span className="text-sm font-medium">{formData.showJurisdiction ? 'Shown' : 'Hidden'}</span>
+                                </div>
+                                {formData.showJurisdiction && (
+                                    <Input value={formData.jurisdictionText} onChange={(e) => setFormData({ ...formData, jurisdictionText: e.target.value })} className="bg-background" />
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
                 {/* --- APPEARANCE SECTION --- */}
                 <section className="space-y-6 pt-8">
                     <div className="flex items-center justify-between border-b pb-4">
@@ -345,12 +495,21 @@ export default function SettingsPage() {
                             >
                                 Statement
                             </button>
+                            <button
+                                onClick={() => setPreviewMode("disbursal")}
+                                className={cn("px-4 py-1.5 rounded-md text-xs font-bold transition-all", previewMode === 'disbursal' ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground")}
+                            >
+                                Disbursal
+                            </button>
                         </div>
                     </div>
 
                     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-8 duration-700">
                         {TEMPLATE_REGISTRY.map((template) => {
-                            const Component = previewMode === 'receipt' ? template.receiptComponent : template.statementComponent;
+                            let Component: any;
+                            if (previewMode === 'receipt') Component = template.receiptComponent;
+                            else if (previewMode === 'statement') Component = template.statementComponent;
+                            else Component = template.disbursalComponent;
 
                             return (
                                 <div
@@ -363,7 +522,7 @@ export default function SettingsPage() {
                                 >
                                     <div className="h-48 overflow-hidden bg-muted/10 relative flex justify-center p-4">
                                         <div className="transform scale-[0.4] origin-top shadow-sm bg-white rounded border">
-                                            <Component data={previewMode === "receipt" ? receiptData : statementData} company={formData} />
+                                            {Component && <ComponentDataWrapper Component={Component} data={getPreviewData(previewMode)} company={formData} />}
                                         </div>
                                         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors" />
                                     </div>
@@ -373,6 +532,18 @@ export default function SettingsPage() {
                                             <p className="text-xs text-muted-foreground">{template.description}</p>
                                         </div>
                                         <div className="flex items-center gap-2">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-8 w-8 text-muted-foreground hover:text-foreground mr-1"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    triggerPreviewPrint(Component);
+                                                }}
+                                                title="Preview Template"
+                                            >
+                                                <Eye className="h-4 w-4" />
+                                            </Button>
                                             {template.isPro && <Badge variant="secondary" className="text-[10px] h-5">PRO</Badge>}
                                             {printTemplate === template.id && <CheckCircle className="h-5 w-5 text-primary fill-primary/10" />}
                                         </div>
@@ -385,4 +556,9 @@ export default function SettingsPage() {
             </div>
         </div>
     );
+}
+
+// Wrapper to separate usage
+const ComponentDataWrapper = ({ Component, data, company }: { Component: any, data: any, company: any }) => {
+    return <Component data={data} company={company} />;
 }

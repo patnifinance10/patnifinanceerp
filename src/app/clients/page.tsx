@@ -222,43 +222,39 @@ export default function ClientsPage() {
 
             {/* DETAILS MODAL - PRESERVED & STYLED */}
             <Dialog open={!!selectedClient} onOpenChange={(open) => !open && setSelectedClient(null)}>
-                <DialogContent className="max-w-4xl h-[85vh] p-0 gap-0 overflow-hidden flex flex-col bg-card border-none shadow-2xl">
+                <DialogContent className="w-[95vw] sm:max-w-[95vw] h-[90vh] p-0 gap-0 overflow-hidden flex flex-row bg-background border-border shadow-2xl rounded-xl outline-none">
                     {selectedClient && (
-                        <>
-                            {/* MODAL HEADER */}
-                            <div className="bg-zinc-900 text-white p-6 shrink-0 relative overflow-hidden">
-                                <div className="absolute inset-0 bg-gradient-to-r from-primary/40 to-transparent opacity-40 mix-blend-overlay" />
-                                <div className="relative z-10 flex justify-between items-start">
-                                    <div className="flex gap-5">
-                                        <Avatar className="h-20 w-20 border-4 border-white/10 shadow-xl ring-1 ring-black/20">
-                                            <AvatarFallback className="bg-primary text-white text-2xl font-bold">
-                                                {selectedClient.customerName[0]}
-                                            </AvatarFallback>
-                                        </Avatar>
-                                        <div>
-                                            <h2 className="text-3xl font-bold tracking-tight">{selectedClient.customerName}</h2>
-                                            <p className="text-zinc-400 flex items-center gap-3 text-sm mt-2 font-medium">
-                                                <span className="flex items-center gap-1 text-emerald-400"><ShieldCheck className="h-4 w-4" /> KYC Verified</span>
-                                                <span className="opacity-20">|</span>
-                                                <span className="font-mono bg-white/10 px-2 py-0.5 rounded text-xs">{selectedClient.loanNumber}</span>
-                                            </p>
+                        <Tabs defaultValue="personal" orientation="vertical" className="flex w-full h-full">
+
+                            {/* LEFT SIDEBAR */}
+                            <div className="w-80 bg-muted/40 border-r border-border p-6 flex flex-col shrink-0">
+                                <div className="flex flex-col items-center text-center mb-8">
+                                    <Avatar className="h-28 w-28 border-4 border-background shadow-md mb-4 bg-background">
+                                        <AvatarFallback className="bg-primary/5 text-primary text-4xl font-bold">
+                                            {selectedClient.customerName[0]}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                    <h2 className="text-xl font-bold tracking-tight text-foreground">{selectedClient.customerName}</h2>
+                                    <p className="text-sm text-muted-foreground font-mono mt-1 mb-4">{selectedClient.loanNumber}</p>
+
+                                    <div className="flex gap-2 justify-center">
+                                        <Badge variant={selectedClient.status === 'Active' ? 'default' : 'secondary'} className="px-3 rounded-full">
+                                            {selectedClient.status}
+                                        </Badge>
+                                        <div className="flex items-center gap-1 bg-primary/10 text-primary px-2 py-0.5 rounded-full text-[10px] font-bold border border-primary/20">
+                                            <ShieldCheck className="h-3 w-3" /> VERIFIED
                                         </div>
                                     </div>
-                                    <Button variant="ghost" className="text-white/70 hover:text-white hover:bg-white/10 rounded-full h-10 w-10 p-0" onClick={() => setSelectedClient(null)}>
-                                        <X className="h-6 w-6" />
-                                    </Button>
                                 </div>
-                            </div>
 
-                            {/* TABS & CONTENT */}
-                            <Tabs defaultValue="personal" className="flex-1 flex flex-col overflow-hidden bg-muted/5">
-                                <div className="border-b px-6 bg-white dark:bg-zinc-900 shadow-sm z-10">
-                                    <TabsList className="bg-transparent h-14 w-full justify-start gap-8 p-0">
-                                        {['Personal', 'Loan Info', 'Guarantor', 'Documents'].map(tab => (
+                                <div className="space-y-1 w-full flex-1">
+                                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2 px-2">Menu</p>
+                                    <TabsList className="flex flex-col h-auto bg-transparent p-0 gap-1 w-full items-stretch">
+                                        {['Personal', 'Loan Info'].map(tab => (
                                             <TabsTrigger
                                                 key={tab}
                                                 value={tab.toLowerCase().split(' ')[0]}
-                                                className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary rounded-none h-full px-0 bg-transparent text-muted-foreground font-semibold text-sm hover:text-foreground transition-colors"
+                                                className="justify-start px-4 py-2.5 h-auto text-sm font-medium rounded-lg data-[state=active]:bg-primary/10 data-[state=active]:text-primary hover:bg-muted transition-all"
                                             >
                                                 {tab}
                                             </TabsTrigger>
@@ -266,124 +262,108 @@ export default function ClientsPage() {
                                     </TabsList>
                                 </div>
 
-                                <div className="flex-1 overflow-y-auto">
-                                    <div className="p-8 max-w-5xl mx-auto space-y-8">
-                                        <TabsContent value="personal" className="space-y-8 mt-0 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-y-8 gap-x-12">
-                                                <InfoItem label="Father's Name" value={selectedClient.fatherName} icon={Users} />
-                                                <InfoItem label="Date of Birth" value={selectedClient.dob} icon={Calendar} />
-                                                <InfoItem label="Gender" value={selectedClient.gender} />
-                                                <InfoItem label="Occupation" value={selectedClient.occupation} />
-                                                <InfoItem label="Primary Mobile" value={selectedClient.mobile} icon={Phone} className="bg-primary/5 p-3 rounded-lg border border-primary/10" />
-                                                <InfoItem label="Alternate Mobile" value={selectedClient.altMobile || "-"} />
-                                                <InfoItem label="Email" value={selectedClient.email || "-"} className="col-span-full" />
-                                            </div>
-                                            <Separator />
-                                            <div className="space-y-4">
-                                                <h4 className="font-bold flex items-center gap-2 text-sm uppercase tracking-wide text-muted-foreground"><MapPin className="h-4 w-4" /> Addresses</h4>
-                                                <div className="grid md:grid-cols-2 gap-4">
-                                                    <div className="p-5 rounded-xl border bg-white dark:bg-zinc-900 shadow-sm">
-                                                        <span className="text-[10px] bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded text-muted-foreground font-bold uppercase block w-fit mb-2">Current</span>
-                                                        <p className="text-sm font-medium leading-relaxed">{selectedClient.address}</p>
-                                                    </div>
-                                                    <div className="p-5 rounded-xl border bg-white dark:bg-zinc-900 shadow-sm">
-                                                        <span className="text-[10px] bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded text-muted-foreground font-bold uppercase block w-fit mb-2">Permanent</span>
-                                                        <p className="text-sm font-medium leading-relaxed">{selectedClient.permanentAddress || "Same as Current"}</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </TabsContent>
-
-                                        <TabsContent value="loan" className="space-y-6 mt-0 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                                            <div className="grid grid-cols-2 gap-6">
-                                                <Card className="col-span-2 bg-gradient-to-br from-primary/5 via-primary/10 to-transparent border-primary/20 shadow-sm">
-                                                    <CardContent className="p-8 flex justify-around items-center text-center">
-                                                        <div>
-                                                            <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Principal Amount</p>
-                                                            <p className="text-4xl font-bold mt-2 tracking-tight">₹{selectedClient.totalLoanAmount.toLocaleString()}</p>
-                                                        </div>
-                                                        <div className="h-16 w-px bg-primary/20" />
-                                                        <div>
-                                                            <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Monthly EMI</p>
-                                                            <p className="text-4xl font-bold text-primary mt-2 tracking-tight">₹{selectedClient.emiAmount.toLocaleString()}</p>
-                                                        </div>
-                                                    </CardContent>
-                                                </Card>
-
-                                                <InfoItem label="Loan Type" value={selectedClient.loanType} />
-                                                <InfoItem label="Current Status" value={selectedClient.status} />
-                                                <InfoItem label="Interest Rate" value={`${selectedClient.interestRate}% p.a.`} />
-                                                <InfoItem label="Tenure" value={`${selectedClient.tenureMonths} Months`} />
-                                                <InfoItem label="Disbursment Date" value={selectedClient.disbursedDate} />
-                                                <InfoItem label="EMIs Completed" value={selectedClient.emisPaid.toString()} />
-                                            </div>
-                                        </TabsContent>
-
-                                        <TabsContent value="guarantor" className="space-y-6 mt-0 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                                            <Card className="shadow-sm">
-                                                <CardHeader className="bg-muted/30 pb-4 border-b">
-                                                    <CardTitle className="text-base font-bold">Guarantor Profile</CardTitle>
-                                                </CardHeader>
-                                                <CardContent className="grid md:grid-cols-2 gap-8 p-6">
-                                                    <InfoItem label="Full Name" value={selectedClient.guarantorName} />
-                                                    <InfoItem label="Relationship" value={selectedClient.guarantorRelation} />
-                                                    <InfoItem label="Mobile Number" value={selectedClient.guarantorMobile} className="bg-muted/20 p-2 rounded" />
-                                                    <InfoItem label="Aadhar Number" value={selectedClient.guarantorAadhar || "-"} />
-                                                </CardContent>
-                                            </Card>
-                                        </TabsContent>
-
-                                        <TabsContent value="documents" className="space-y-6 mt-0 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                                            <Card className="shadow-sm">
-                                                <CardHeader className="pb-3 border-b bg-muted/30">
-                                                    <CardTitle className="text-base flex gap-2 font-bold"><Building2 className="h-4 w-4" /> Banking Info</CardTitle>
-                                                </CardHeader>
-                                                <CardContent className="grid md:grid-cols-2 gap-6 p-6">
-                                                    <InfoItem label="Bank Name" value={selectedClient.bankName || "-"} />
-                                                    <InfoItem label="IFSC Code" value={selectedClient.ifscCode || "-"} />
-                                                    <InfoItem label="Account Number" value={selectedClient.accountNo || "-"} className="col-span-full font-mono text-xl bg-muted/20 p-3 rounded border border-dashed" />
-                                                </CardContent>
-                                            </Card>
-
-                                            <Separator />
-
-                                            <div className="space-y-4">
-                                                <h4 className="font-bold flex items-center gap-2 text-sm uppercase tracking-wide text-muted-foreground"><FileText className="h-4 w-4" /> KYC Documents</h4>
-                                                <div className="grid grid-cols-2 gap-4">
-                                                    <div className="p-4 border rounded-xl flex items-center gap-4 bg-white dark:bg-zinc-900 shadow-sm hover:shadow-md transition-all cursor-pointer group">
-                                                        <div className="h-12 w-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                                                            <FileText className="h-6 w-6" />
-                                                        </div>
-                                                        <div>
-                                                            <p className="text-sm font-bold">Aadhar Card</p>
-                                                            <p className="text-xs font-mono text-muted-foreground group-hover:text-blue-600 transition-colors">{selectedClient.aadharNo}</p>
-                                                        </div>
-                                                    </div>
-                                                    <div className="p-4 border rounded-xl flex items-center gap-4 bg-white dark:bg-zinc-900 shadow-sm hover:shadow-md transition-all cursor-pointer group">
-                                                        <div className="h-12 w-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                                                            <FileText className="h-6 w-6" />
-                                                        </div>
-                                                        <div>
-                                                            <p className="text-sm font-bold">PAN Card</p>
-                                                            <p className="text-xs font-mono text-muted-foreground group-hover:text-emerald-600 transition-colors">{selectedClient.panNo}</p>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </TabsContent>
-                                    </div>
-                                </div>
-
-                                {/* FOOTER ACTIONS */}
-                                <div className="p-4 md:px-8 border-t bg-background flex justify-between items-center shrink-0 z-20">
-                                    <Button variant="outline" className="font-semibold">Edit Profile</Button>
-                                    <div className="flex gap-3">
-                                        <Button variant="secondary" className="font-semibold shadow-sm"><Printer className="h-4 w-4 mr-2" /> Print Profile</Button>
+                                <div className="mt-auto pt-6 border-t border-border">
+                                    <p className="text-xs text-muted-foreground uppercase font-bold tracking-widest mb-3 px-2">Actions</p>
+                                    <div className="grid gap-2">
+                                        <Button size="sm" variant="outline" className="w-full justify-start font-semibold">
+                                            Edit Profile
+                                        </Button>
+                                        <Button size="sm" variant="outline" className="w-full justify-start font-semibold">
+                                            <Printer className="h-3.5 w-3.5 mr-2" /> Print Profile
+                                        </Button>
                                         <NewLoanDialog client={selectedClient} />
                                     </div>
                                 </div>
-                            </Tabs>
-                        </>
+                            </div>
+
+                            {/* RIGHT CONTENT */}
+                            <div className="flex-1 flex flex-col bg-background relative overflow-hidden">
+                                <div className="absolute top-4 right-4 z-50">
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-muted" onClick={() => setSelectedClient(null)}>
+                                        <X className="h-4 w-4" />
+                                    </Button>
+                                </div>
+
+                                <div className="flex-1 overflow-y-auto p-8">
+                                    <TabsContent value="personal" className="space-y-8 mt-0 animate-in fade-in slide-in-from-right-4 duration-300">
+                                        <div>
+                                            <h3 className="text-lg font-bold flex items-center gap-2 mb-4">
+                                                <Users className="h-5 w-5 text-primary" /> Contact Information
+                                            </h3>
+                                            <Card className="p-0 overflow-hidden bg-card border-border shadow-sm">
+                                                <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-border">
+                                                    <div className="p-6">
+                                                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Mobile Number</label>
+                                                        <div className="mt-1 flex items-center gap-2">
+                                                            <span className="text-lg font-mono font-medium">{selectedClient.mobile}</span>
+                                                            <Badge variant="outline" className="text-[10px] h-5 bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800">WhatsApp</Badge>
+                                                        </div>
+                                                    </div>
+                                                    <div className="p-6">
+                                                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Email Address</label>
+                                                        <p className="mt-1 text-lg font-medium">{selectedClient.email || "-"}</p>
+                                                    </div>
+                                                </div>
+                                                <div className="p-6 border-t border-border bg-muted/20">
+                                                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Residence Address</label>
+                                                    <p className="mt-1 text-base leading-relaxed max-w-2xl">{selectedClient.address}</p>
+                                                </div>
+                                            </Card>
+                                        </div>
+
+                                        <div>
+                                            <h3 className="text-lg font-bold flex items-center gap-2 mb-4">
+                                                <ShieldCheck className="h-5 w-5 text-primary" /> Identity Proofs
+                                            </h3>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <Card className="p-4 flex items-center gap-4 hover:border-primary/50 transition-colors cursor-pointer group">
+                                                    <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                                                        <FileText className="h-6 w-6" />
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-xs font-bold text-muted-foreground uppercase">Aadhar Number</p>
+                                                        <p className="text-base font-mono font-bold">{selectedClient.aadharNo}</p>
+                                                    </div>
+                                                </Card>
+                                                <Card className="p-4 flex items-center gap-4 hover:border-primary/50 transition-colors cursor-pointer group">
+                                                    <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                                                        <FileText className="h-6 w-6" />
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-xs font-bold text-muted-foreground uppercase">PAN Number</p>
+                                                        <p className="text-base font-mono font-bold">{selectedClient.panNo}</p>
+                                                    </div>
+                                                </Card>
+                                            </div>
+                                        </div>
+                                    </TabsContent>
+
+                                    <TabsContent value="loan" className="space-y-6 mt-0 animate-in fade-in slide-in-from-right-4 duration-300">
+                                        <Card className="bg-primary text-primary-foreground border-none shadow-lg">
+                                            <CardContent className="p-8 flex justify-around items-center text-center">
+                                                <div>
+                                                    <p className="text-xs opacity-80 uppercase font-bold tracking-wider">Principal Amount</p>
+                                                    <p className="text-4xl font-bold mt-2 tracking-tight">₹{selectedClient.totalLoanAmount.toLocaleString()}</p>
+                                                </div>
+                                                <div className="h-16 w-px bg-primary-foreground/20" />
+                                                <div>
+                                                    <p className="text-xs opacity-80 uppercase font-bold tracking-wider">Monthly EMI</p>
+                                                    <p className="text-4xl font-bold mt-2 tracking-tight">₹{selectedClient.emiAmount.toLocaleString()}</p>
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <InfoItem label="Loan Type" value={selectedClient.loanType} className="p-4 border rounded-xl bg-card" />
+                                            <InfoItem label="Current Status" value={selectedClient.status} className="p-4 border rounded-xl bg-card" />
+                                            <InfoItem label="Interest Rate" value={`${selectedClient.interestRate}% ${selectedClient.interestPaidInAdvance ? '(Adv.)' : 'p.a.'}`} className="p-4 border rounded-xl bg-card" />
+                                            <InfoItem label="Tenure" value={`${selectedClient.tenureMonths} Months`} className="p-4 border rounded-xl bg-card" />
+                                            <InfoItem label="Disbursal Date" value={selectedClient.disbursedDate} className="p-4 border rounded-xl bg-card col-span-2" icon={Calendar} />
+                                        </div>
+                                    </TabsContent>
+                                </div>
+                            </div>
+                        </Tabs>
                     )}
                 </DialogContent>
             </Dialog>
@@ -394,6 +374,10 @@ export default function ClientsPage() {
 
 function NewLoanDialog({ client }: { client: LoanAccount }) {
     const [open, setOpen] = useState(false);
+    const [loanScheme, setLoanScheme] = useState("EMI");
+    const [interestType, setInterestType] = useState("Reducing");
+    const [repaymentFreq, setRepaymentFreq] = useState("Monthly");
+    const [interestPaidInAdvance, setInterestPaidInAdvance] = useState(false);
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
@@ -402,7 +386,7 @@ function NewLoanDialog({ client }: { client: LoanAccount }) {
                     <Plus className="mr-2 h-4 w-4" /> Grant New Loan
                 </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-xl">
+            <DialogContent className="max-w-2xl bg-card border-border sm:max-w-2xl">
                 <DialogHeader>
                     <DialogTitle>New Loan Assignment</DialogTitle>
                     <DialogDescription>
@@ -410,42 +394,126 @@ function NewLoanDialog({ client }: { client: LoanAccount }) {
                     </DialogDescription>
                 </DialogHeader>
 
-                <div className="grid grid-cols-2 gap-4 py-4">
-                    <div className="col-span-2 p-3 bg-blue-50 text-blue-800 rounded-md text-sm border border-blue-100 mb-2">
+                <div className="grid gap-6 py-4 overflow-y-auto max-h-[70vh] pr-2">
+
+                    {/* Active Loan Info */}
+                    <div className="p-3 bg-blue-50 text-blue-800 rounded-md text-sm border border-blue-100 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800">
                         <p className="font-semibold">Current Active Loan: {client.loanNumber}</p>
                         <p>Status: {client.status} • EMI: ₹{client.emiAmount}</p>
                     </div>
 
-                    <div className="space-y-2">
-                        <Label>Loan Amount (₹)</Label>
-                        <Input placeholder="e.g. 50000" type="number" className="font-semibold" />
-                    </div>
-                    <div className="space-y-2">
-                        <Label>Interest Rate (%)</Label>
-                        <Input defaultValue="12" type="number" />
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label>Tenure (Months)</Label>
-                        <Input defaultValue="12" type="number" />
-                    </div>
-                    <div className="space-y-2">
-                        <Label>Loan Type</Label>
-                        <Input defaultValue="Personal" />
-                    </div>
-
-                    <div className="col-span-2 space-y-2 pt-2">
-                        <Label>Guarantor Verification</Label>
-                        <div className="flex items-center justify-between p-3 border rounded-md">
-                            <div className="text-sm">
-                                <p className="font-medium">{client.guarantorName}</p>
-                                <p className="text-muted-foreground">{client.guarantorRelation}</p>
+                    {/* Loan Scheme */}
+                    <div className="space-y-3">
+                        <Label>Loan Scheme</Label>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div
+                                className={cn(
+                                    "cursor-pointer border rounded-xl p-3 flex items-center gap-3 transition-all",
+                                    loanScheme === 'EMI' ? 'border-primary bg-primary/5 ring-1 ring-primary/20' : 'hover:border-primary/50'
+                                )}
+                                onClick={() => setLoanScheme("EMI")}
+                            >
+                                <div className={cn("h-4 w-4 rounded-full border flex items-center justify-center", loanScheme === 'EMI' ? 'border-primary' : 'border-muted-foreground')}>
+                                    {loanScheme === 'EMI' && <div className="h-2 w-2 rounded-full bg-primary" />}
+                                </div>
+                                <div>
+                                    <p className="font-semibold text-sm">EMI Based</p>
+                                    <p className="text-xs text-muted-foreground">Principal + Interest monthly</p>
+                                </div>
                             </div>
-                            <div className="flex items-center gap-2">
-                                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Verified</Badge>
+
+                            <div
+                                className={cn(
+                                    "cursor-pointer border rounded-xl p-3 flex items-center gap-3 transition-all",
+                                    loanScheme === 'InterestOnly' ? 'border-primary bg-primary/5 ring-1 ring-primary/20' : 'hover:border-primary/50'
+                                )}
+                                onClick={() => setLoanScheme("InterestOnly")}
+                            >
+                                <div className={cn("h-4 w-4 rounded-full border flex items-center justify-center", loanScheme === 'InterestOnly' ? 'border-primary' : 'border-muted-foreground')}>
+                                    {loanScheme === 'InterestOnly' && <div className="h-2 w-2 rounded-full bg-primary" />}
+                                </div>
+                                <div>
+                                    <p className="font-semibold text-sm">Interest Only</p>
+                                    <p className="text-xs text-muted-foreground">Bullet Repayment</p>
+                                </div>
                             </div>
                         </div>
                     </div>
+
+                    {loanScheme === 'InterestOnly' && (
+                        <div className="flex items-center space-x-3 rounded-xl border p-4 bg-yellow-50/50 dark:bg-yellow-900/10 border-yellow-200/50 dark:border-yellow-700/30">
+                            <input
+                                id="advance-interest-modal"
+                                type="checkbox"
+                                className="h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary accent-primary"
+                                checked={interestPaidInAdvance}
+                                onChange={(e) => setInterestPaidInAdvance(e.target.checked)}
+                            />
+                            <div className="flex flex-col">
+                                <Label htmlFor="advance-interest-modal" className="text-sm font-bold cursor-pointer">Collect Interest in Advance</Label>
+                                <span className="text-xs text-muted-foreground/80">Deduct first month's interest from disbursement.</span>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Principal */}
+                    <div className="space-y-2">
+                        <Label>Loan Amount (₹)</Label>
+                        <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-lg font-bold text-muted-foreground">₹</span>
+                            <Input placeholder="50000" type="number" className="pl-8 text-lg font-bold" />
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label>Interest Rate (%)</Label>
+                            <div className="relative">
+                                <Input defaultValue="12" type="number" className="pr-8" />
+                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground">%</span>
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Tenure (Months)</Label>
+                            <Input defaultValue="12" type="number" />
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label>Interest Type</Label>
+                            {/* Simple Select implementation for the modal since native select is easier to style consistently here quickly or reuse Shadcn Select if imported */}
+                            <select
+                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                value={interestType}
+                                onChange={(e) => setInterestType(e.target.value)}
+                            >
+                                <option value="Flat">Flat Rate</option>
+                                <option value="Reducing">Reducing Balance</option>
+                            </select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Repayment Freq.</Label>
+                            <select
+                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                value={repaymentFreq}
+                                onChange={(e) => setRepaymentFreq(e.target.value)}
+                            >
+                                <option value="Monthly">Monthly</option>
+                                <option value="Weekly">Weekly</option>
+                                <option value="Daily">Daily</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label>Processing Fee (%)</Label>
+                        <div className="relative">
+                            <Input defaultValue="2" type="number" className="pr-8" />
+                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground">%</span>
+                        </div>
+                    </div>
+
                 </div>
 
                 <DialogFooter>

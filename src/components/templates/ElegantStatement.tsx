@@ -130,6 +130,9 @@ export const ElegantStatement = ({ data, company }: StatementProps) => {
             {/* Footer */}
             <div className="mt-auto flex flex-col items-center justify-center p-8 text-center bg-[#fffcf5]">
                 <div className="w-8 h-8 border border-[#d4af37] rotate-45 mb-4"></div>
+                {company.showSignatory && (
+                    <p className="text-[10px] uppercase tracking-[0.3em] mb-1 font-bold">{company.signatoryText || "Authorized Signatory"}</p>
+                )}
                 <p className="text-[10px] uppercase tracking-[0.3em] text-gray-400">Excellence in Finance</p>
             </div>
         </div>

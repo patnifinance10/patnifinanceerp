@@ -149,7 +149,9 @@ export const CorporateStatement = ({ data, company }: StatementProps) => {
                     <p>Page 1 of 1</p>
                 </div>
                 <div className="text-right">
-                    <p className="font-bold uppercase text-slate-800">Authorized Signatory</p>
+                    {company.showSignatory && (
+                        <p className="font-bold uppercase text-slate-800">{company.signatoryText || "Authorized Signatory"}</p>
+                    )}
                 </div>
             </div>
         </div>

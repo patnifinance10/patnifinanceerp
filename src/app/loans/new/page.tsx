@@ -32,7 +32,52 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
+import { useRef } from "react";
+import { useReactToPrint } from "react-to-print";
+import { useSettings } from "@/components/providers/settings-provider"; // Hook to get company settings
+import { DisbursementReceipt } from "@/components/templates/DisbursementReceipt";
+import {
+    Dialog,
+    DialogContent,
+    DialogTitle,
+} from "@/components/ui/dialog";
+import {
+    Printer,
+    Download,
+    // ... other icons
+} from "lucide-react";
+
+// Dynamic Registry Import
+import { getTemplate } from "@/components/templates/registry";
+
 export default function NewLoanPage() {
+    const { companySettings, printTemplate } = useSettings(); // Use context for company data
+    const [showReceipt, setShowReceipt] = useState(false);
+    const componentRef = useRef<HTMLDivElement>(null);
+
+    const handlePrint = useReactToPrint({
+        contentRef: componentRef,
+        documentTitle: `Disbursement_Receipt_${new Date().getTime()}`,
+        pageStyle: `
+            @page {
+                size: A4;
+                margin: 0mm;
+            }
+            @media print {
+                body {
+                    -webkit-print-color-adjust: exact;
+                }
+                .print-content {
+                    margin: 20mm auto !important;
+                    box-shadow: none !important;
+                    border: none !important;
+                    transform: scale(0.98);
+                    transform-origin: top center;
+                }
+            }
+        `
+    });
+
     const [formData, setFormData] = useState({
         // Customer Info
         firstName: "",
@@ -45,6 +90,8 @@ export default function NewLoanPage() {
 
         // Loan Config
         // Removed loanType as per request
+        loanScheme: "EMI", // "EMI" or "InterestOnly"
+        interestPaidInAdvance: false,
         interestType: "Flat", // Flat or Reducing
         interestRateUnit: "Yearly", // Yearly or Monthly
         loanAmount: "50000",
@@ -65,7 +112,8 @@ export default function NewLoanPage() {
         totalInterest: 0,
         totalPayable: 0,
         processingFeeAmount: 0,
-        netDisbursal: 0
+        netDisbursal: 0,
+        firstMonthInterest: 0 // Track this for display/logic
     });
 
     // Calculate EMI whenever relevant fields change
@@ -84,37 +132,58 @@ export default function NewLoanPage() {
             let emi = 0;
             let totalInterest = 0;
             let totalPayable = 0;
+            let firstMonthInterest = 0;
 
-            if (formData.interestType === "Flat") {
-                // Flat Rate Calculation
-                // Total Interest = P * (R/100) * (N/12)
-                totalInterest = (P * R * (N / 12)) / 100;
+            if (formData.loanScheme === "InterestOnly") {
+                // Interest Only Calculation (Bullet Repayment)
+                // Monthly Interest = P * (R/12) / 100
+                firstMonthInterest = (P * (R / 12)) / 100;
+                emi = firstMonthInterest; // The monthly payment IS the interest
+                totalInterest = firstMonthInterest * N;
+                // Total Payable = Principal + Total Interest
                 totalPayable = P + totalInterest;
-                emi = totalPayable / N;
+
             } else {
-                // Reducing Balance Calculation (Standard EMI Formula)
-                // r = monthly interest rate = (R / 12) / 100
-                // E = P * r * (1+r)^N / ((1+r)^N - 1)
-                const r = (R / 12) / 100;
-                emi = (P * r * Math.pow(1 + r, N)) / (Math.pow(1 + r, N) - 1);
-                totalPayable = emi * N;
-                totalInterest = totalPayable - P;
+                // EMI Based Calculation
+                if (formData.interestType === "Flat") {
+                    // Flat Rate Calculation
+                    // Total Interest = P * (R/100) * (N/12)
+                    totalInterest = (P * R * (N / 12)) / 100;
+                    totalPayable = P + totalInterest;
+                    emi = totalPayable / N;
+                } else {
+                    // Reducing Balance Calculation (Standard EMI Formula)
+                    // r = monthly interest rate = (R / 12) / 100
+                    // E = P * r * (1+r)^N / ((1+r)^N - 1)
+                    const r = (R / 12) / 100;
+                    emi = (P * r * Math.pow(1 + r, N)) / (Math.pow(1 + r, N) - 1);
+                    totalPayable = emi * N;
+                    totalInterest = totalPayable - P;
+                }
+                // For EMI, first month interest is part of EMI, but we can calculate it for reference
+                firstMonthInterest = (P * (R / 12)) / 100;
             }
 
             const processingFeeAmount = (P * PF_Percent) / 100;
-            const netDisbursal = P - processingFeeAmount;
+            let netDisbursal = P - processingFeeAmount;
+
+            // Handle Interest Paid In Advance
+            if (formData.loanScheme === "InterestOnly" && formData.interestPaidInAdvance) {
+                netDisbursal -= firstMonthInterest;
+            }
 
             setCalculations({
                 emi: Math.round(emi),
                 totalInterest: Math.round(totalInterest),
                 totalPayable: Math.round(totalPayable),
                 processingFeeAmount: Math.round(processingFeeAmount),
-                netDisbursal: Math.round(netDisbursal)
+                netDisbursal: Math.round(netDisbursal),
+                firstMonthInterest: Math.round(firstMonthInterest)
             });
         } else {
-            setCalculations({ emi: 0, totalInterest: 0, totalPayable: 0, processingFeeAmount: 0, netDisbursal: 0 });
+            setCalculations({ emi: 0, totalInterest: 0, totalPayable: 0, processingFeeAmount: 0, netDisbursal: 0, firstMonthInterest: 0 });
         }
-    }, [formData.loanAmount, formData.interestRate, formData.tenureMonths, formData.processingFeePercent, formData.interestType, formData.interestRateUnit]);
+    }, [formData.loanAmount, formData.interestRate, formData.tenureMonths, formData.processingFeePercent, formData.interestType, formData.interestRateUnit, formData.loanScheme, formData.interestPaidInAdvance]);
 
     const handleChange = (field: string, value: string) => {
         setFormData(prev => ({ ...prev, [field]: value }));
@@ -150,10 +219,8 @@ export default function NewLoanPage() {
         e.preventDefault();
         console.log("Submitting Loan Application:", { ...formData, ...calculations });
         toast.success(`Loan Application for ${formData.firstName} submitted successfully!`);
-        // Reset or redirect logic would go here
+        setShowReceipt(true);
     };
-
-
 
     return (
         <div className="-m-6 md:-m-8 w-[calc(100%+3rem)] md:w-[calc(100%+4rem)] h-[calc(100vh-1rem)] flex flex-col bg-muted/5 overflow-hidden animate-in fade-in duration-500">
@@ -247,6 +314,55 @@ export default function NewLoanPage() {
                                 <CardDescription>Define the financial terms of the loan.</CardDescription>
                             </CardHeader>
                             <CardContent className="grid sm:grid-cols-2 gap-x-6 gap-y-6 pt-6 bg-gradient-to-b from-primary/[0.02] to-transparent">
+
+                                <div className="sm:col-span-2">
+                                    <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2 block">Loan Type / Scheme <span className="text-red-500">*</span></Label>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div
+                                            className={`cursor-pointer border rounded-xl p-3 flex items-center gap-3 transition-all ${formData.loanScheme === 'EMI' ? 'border-primary bg-primary/5 ring-1 ring-primary/20' : 'hover:border-primary/50'}`}
+                                            onClick={() => handleChange("loanScheme", "EMI")}
+                                        >
+                                            <div className={`h-4 w-4 rounded-full border flex items-center justify-center ${formData.loanScheme === 'EMI' ? 'border-primary' : 'border-muted-foreground'}`}>
+                                                {formData.loanScheme === 'EMI' && <div className="h-2 w-2 rounded-full bg-primary" />}
+                                            </div>
+                                            <div>
+                                                <p className="font-semibold text-sm">EMI Based</p>
+                                                <p className="text-xs text-muted-foreground">Principal + Interest monthly</p>
+                                            </div>
+                                        </div>
+
+                                        <div
+                                            className={`cursor-pointer border rounded-xl p-3 flex items-center gap-3 transition-all ${formData.loanScheme === 'InterestOnly' ? 'border-primary bg-primary/5 ring-1 ring-primary/20' : 'hover:border-primary/50'}`}
+                                            onClick={() => handleChange("loanScheme", "InterestOnly")}
+                                        >
+                                            <div className={`h-4 w-4 rounded-full border flex items-center justify-center ${formData.loanScheme === 'InterestOnly' ? 'border-primary' : 'border-muted-foreground'}`}>
+                                                {formData.loanScheme === 'InterestOnly' && <div className="h-2 w-2 rounded-full bg-primary" />}
+                                            </div>
+                                            <div>
+                                                <p className="font-semibold text-sm">Interest Only</p>
+                                                <p className="text-xs text-muted-foreground">Bullet Repayment</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {formData.loanScheme === 'InterestOnly' && (
+                                    <div className="sm:col-span-2 flex items-center space-x-3 rounded-xl border p-4 bg-yellow-50/50 dark:bg-yellow-900/10 border-yellow-200/50 dark:border-yellow-700/30">
+                                        <div className="flex items-center h-5">
+                                            <input
+                                                id="advance-interest"
+                                                type="checkbox"
+                                                className="h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary accent-primary"
+                                                checked={formData.interestPaidInAdvance}
+                                                onChange={(e) => setFormData(prev => ({ ...prev, interestPaidInAdvance: e.target.checked }))}
+                                            />
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <Label htmlFor="advance-interest" className="text-sm font-bold cursor-pointer text-foreground">Collect Interest in Advance</Label>
+                                            <span className="text-xs text-muted-foreground/80">Deduct first month's interest (<span className="font-mono font-bold">₹{calculations.firstMonthInterest?.toLocaleString() ?? 0}</span>) from the disbursement amount.</span>
+                                        </div>
+                                    </div>
+                                )}
 
                                 {/* Principal Row */}
                                 <div className="sm:col-span-2 space-y-2">
@@ -461,7 +577,9 @@ export default function NewLoanPage() {
                                 <CardContent className="pt-6 space-y-6">
 
                                     <div>
-                                        <p className="text-primary-foreground/70 text-xs font-bold uppercase tracking-wider mb-1">Monthly Installment (EMI)</p>
+                                        <p className="text-primary-foreground/70 text-xs font-bold uppercase tracking-wider mb-1">
+                                            {formData.loanScheme === 'InterestOnly' ? 'Monthly Interest' : 'Monthly Installment (EMI)'}
+                                        </p>
                                         <div className="flex items-baseline gap-1">
                                             <span className="text-4xl font-bold tracking-tight">₹{calculations.emi.toLocaleString()}</span>
                                             <span className="text-sm text-primary-foreground/60">/ month</span>
@@ -481,6 +599,14 @@ export default function NewLoanPage() {
                                             <span className="text-primary-foreground/70">Processing Fee</span>
                                             <span className="font-semibold text-red-200">- ₹{calculations.processingFeeAmount.toLocaleString()}</span>
                                         </div>
+
+                                        {formData.loanScheme === "InterestOnly" && formData.interestPaidInAdvance && (
+                                            <div className="flex justify-between text-sm">
+                                                <span className="text-primary-foreground/70">Interest (Advance)</span>
+                                                <span className="font-semibold text-red-200">- ₹{calculations.firstMonthInterest.toLocaleString()}</span>
+                                            </div>
+                                        )}
+
                                         <Separator className="bg-primary-foreground/10 my-2" />
                                         <div className="flex justify-between items-center pt-1">
                                             <span className="text-sm font-bold text-primary-foreground/90 uppercase">Net Disbursal</span>
@@ -510,6 +636,62 @@ export default function NewLoanPage() {
 
                 </form>
             </div>
+
+            {/* Receipt Modal */}
+            <Dialog open={showReceipt} onOpenChange={setShowReceipt}>
+                <DialogContent className="max-w-[fit-content] w-auto p-0 bg-transparent border-none shadow-none text-transparent">
+                    <DialogTitle className="sr-only">Disbursement Receipt</DialogTitle>
+
+                    <div className="relative bg-white dark:bg-zinc-950 rounded-lg shadow-2xl overflow-hidden max-w-[95vw] md:max-w-5xl w-full flex flex-col">
+                        {/* Toolbar */}
+                        <div className="flex justify-end p-4 border-b bg-muted/20 print:hidden gap-3">
+                            <Button onClick={handlePrint} className="gap-2 font-bold shadow-sm">
+                                <Printer className="h-4 w-4" /> Print Receipt
+                            </Button>
+                        </div>
+
+                        {/* Paper Preview */}
+                        <div className="p-8 overflow-auto max-h-[85vh] bg-gray-100/50 dark:bg-zinc-900/50 flex justify-center">
+                            <div className="origin-top scale-[0.6] sm:scale-60 shadow-2xl">
+                                {(() => {
+                                    const TemplateComponent = getTemplate(printTemplate).disbursalComponent || getTemplate('classic').disbursalComponent;
+                                    return (
+                                        <TemplateComponent
+                                            ref={componentRef}
+                                            data={{
+                                                loanAccountNo: `LN-${Math.floor(Math.random() * 10000)}`,
+                                                customerName: `${formData.firstName} ${formData.lastName}`,
+                                                address: formData.address,
+                                                mobile: formData.mobile,
+                                                disbursedDate: formData.startDate,
+
+                                                loanAmount: parseFloat(formData.loanAmount),
+                                                interestRate: parseFloat(formData.interestRate),
+                                                tenureMonths: parseInt(formData.tenureMonths),
+                                                emiAmount: calculations.emi,
+                                                processingFee: calculations.processingFeeAmount,
+                                                netDisbursal: calculations.netDisbursal,
+
+                                                loanScheme: formData.loanScheme,
+                                                interestPaidInAdvance: formData.interestPaidInAdvance,
+                                                firstMonthInterest: calculations.firstMonthInterest,
+
+                                                paymentModes: formData.paymentModes
+                                            }}
+                                            company={{
+                                                ...companySettings,
+                                                phone: companySettings.mobile,
+                                                website: "www.loanerp.com"
+                                            }}
+                                        />
+                                    );
+                                })()}
+                            </div>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
         </div>
     );
 }

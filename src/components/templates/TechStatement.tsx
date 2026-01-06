@@ -118,6 +118,9 @@ export const TechStatement = ({ data, company }: StatementProps) => {
                     <span>TOT_INT: {Number(data.totalInterest).toFixed(2)}</span>
                     <span>TOT_PAID: {Number(data.totalPaid).toFixed(2)}</span>
                 </div>
+                {company.showSignatory && (
+                    <p className="mt-4 border border-[#00ff41] inline-block px-4 py-1">{company.signatoryText || "AUTHORIZED_KEY"}</p>
+                )}
             </div>
         </div>
     );

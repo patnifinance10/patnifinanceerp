@@ -65,6 +65,7 @@ export default function QuickPaymentPage() {
   // Dynamic Payment State
   const [isSplitMode, setIsSplitMode] = useState(false);
   const [payments, setPayments] = useState([{ mode: "cash", amount: "" }]);
+  const [narrative, setNarrative] = useState(""); // New: Custom Particulars
 
   // Sidebar Logic
   const [isSidebarHovered, setIsSidebarHovered] = useState(false);
@@ -93,6 +94,7 @@ export default function QuickPaymentPage() {
   const handleSelectCustomer = (loan: LoanAccount) => {
     setSelectedId(loan.loanNumber);
     setPayments([{ mode: "cash", amount: loan.emiAmount.toString() }]);
+    setNarrative(""); // Reset
     setActiveTab("ledger"); // Reset tab on switch
     setLedgerHistory(generateLedger(loan));
   };
@@ -140,9 +142,17 @@ export default function QuickPaymentPage() {
     const newEntries = validPayments.map((p, index) => {
       const amount = parseFloat(p.amount);
       runningBalance -= amount;
+
+      // Use Custom Narrative if provided, else default
+      let entryParticulars = narrative ? narrative : `Payment Received (${p.mode})`;
+
+      if (isSplitMode && payments.length > 1 && !narrative) {
+        entryParticulars = `Payment Received (Split ${index + 1} - ${p.mode})`;
+      }
+
       return {
         date: new Date().toISOString(),
-        particulars: `Payment Received (${isSplitMode && payments.length > 1 ? `Split ${index + 1} - ` : ''}${p.mode})`,
+        particulars: entryParticulars,
         type: 'Repayment',
         credit: amount,
         debit: 0,
@@ -158,6 +168,7 @@ export default function QuickPaymentPage() {
 
     // Reset
     setPayments([{ mode: "cash", amount: "" }]);
+    setNarrative("");
     setIsSplitMode(false);
     setShowReceipt(true);
   };
@@ -468,6 +479,17 @@ export default function QuickPaymentPage() {
                   "flex gap-2 bg-muted/40 p-1 pr-1.5 pl-2 rounded-md border ring-1 ring-black/5 focus-within:ring-primary/20 transition-all flex-1 md:flex-none justify-end",
                   isSplitMode ? "flex-col items-end h-auto gap-1" : "items-center"
                 )}>
+
+                  {/* Narrative Input (New) */}
+                  <div className={cn("w-full md:w-auto flex items-center transition-all", isSplitMode ? "w-full mb-1" : "mr-2")}>
+                    <Input
+                      placeholder="Remark / Particulars (Optional)"
+                      className="h-7 text-xs border-transparent bg-transparent hover:bg-white/50 focus:bg-white focus:border-input transition-colors w-[180px]"
+                      value={narrative}
+                      onChange={(e) => setNarrative(e.target.value)}
+                    />
+                    {!isSplitMode && <div className="h-4 w-[1px] bg-border mx-2" />}
+                  </div>
 
                   {payments.map((payment, index) => {
                     // If not split mode, only show first

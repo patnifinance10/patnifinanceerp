@@ -125,8 +125,13 @@ export const ProfessionalStatement = React.forwardRef<HTMLDivElement, StatementP
 
             {/* Footer */}
             <div className="px-12 py-8 bg-[#f8f9fa] border-t border-gray-200 text-center text-xs text-gray-500">
-                <p>This is a system generated statement and does not require a physical signature.</p>
-                <p>{company.email} | {company.mobile}</p>
+                {company.showComputerGenerated && (
+                    <p>{company.computerGeneratedText || "This is a an electronically generated report."}</p>
+                )}
+                {company.showSignatory && (
+                    <p className="mt-2 text-slate-700 font-bold">{company.signatoryText || "Authorized Signatory"}</p>
+                )}
+                <p className="mt-2">{company.email} | {company.mobile}</p>
             </div>
         </div>
     );

@@ -10,6 +10,18 @@ export interface CompanySettings {
     mobile: string;
     email: string;
     logoUrl: string; // For now just a placeholder URL or base64
+    signatoryText: string;
+    showSignatory: boolean;
+
+    // Disclaimer Settings
+    showComputerGenerated: boolean;
+    computerGeneratedText: string;
+    showStatementEnd: boolean;
+    statementEndText: string;
+    showCertification: boolean;
+    certificationText: string;
+    showJurisdiction: boolean;
+    jurisdictionText: string;
 }
 
 interface SettingsContextType {
@@ -27,6 +39,17 @@ const defaultCompany: CompanySettings = {
     mobile: "+91 98765 43210",
     email: "support@apnafinance.com",
     logoUrl: "https://placehold.co/400x200?text=Patni+Finance",
+    signatoryText: "Authorized Signatory",
+    showSignatory: true,
+
+    showComputerGenerated: true,
+    computerGeneratedText: "This is a computer generated statement and does not require a signature.",
+    showStatementEnd: true,
+    statementEndText: "END OF STATEMENT",
+    showCertification: true,
+    certificationText: 'I/We hereby certify that the particulars furnished above are true and correct as per our books of accounts.',
+    showJurisdiction: true,
+    jurisdictionText: "Subject to Mumbai - 400001 Jurisdiction"
 };
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);

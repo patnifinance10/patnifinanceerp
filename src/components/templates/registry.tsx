@@ -13,22 +13,39 @@ import {
 // Import all templates
 import { ClassicTemplate } from "./ClassicTemplate";
 import { ClassicStatement } from "./ClassicStatement";
+import { ClassicDisbursal } from "./ClassicDisbursal";
+
 import { ModernTemplate } from "./ModernTemplate";
 import { ModernStatement } from "./ModernStatement";
+import { ModernDisbursal } from "./ModernDisbursal";
+
 import { CorporateTemplate } from "./CorporateTemplate";
 import { CorporateStatement } from "./CorporateStatement";
+import { CorporateDisbursal } from "./CorporateDisbursal";
+
 import { ElegantTemplate } from "./ElegantTemplate";
 import { ElegantStatement } from "./ElegantStatement";
+import { ElegantDisbursal } from "./ElegantDisbursal";
+
 import { MinimalTemplate } from "./MinimalTemplate";
 import { MinimalStatement } from "./MinimalStatement";
+import { MinimalDisbursal } from "./MinimalDisbursal";
+
 import { BoldTemplate } from "./BoldTemplate";
 import { BoldStatement } from "./BoldStatement";
+import { BoldDisbursal } from "./BoldDisbursal";
+
 import { CreativeTemplate } from "./CreativeTemplate";
 import { CreativeStatement } from "./CreativeStatement";
+import { CreativeDisbursal } from "./CreativeDisbursal";
+
 import { ProfessionalTemplate } from "./ProfessionalTemplate";
 import { ProfessionalStatement } from "./ProfessionalStatement";
+import { ProfessionalDisbursal } from "./ProfessionalDisbursal";
+
 import { TechTemplate } from "./TechTemplate";
 import { TechStatement } from "./TechStatement";
+import { TechDisbursal } from "./TechDisbursal";
 
 export type TemplateId =
     | "classic"
@@ -48,6 +65,7 @@ export interface TemplateConfig {
     icon: any;
     receiptComponent: React.ComponentType<any>;
     statementComponent: React.ComponentType<any>;
+    disbursalComponent: React.ComponentType<any>;
     isPro?: boolean;
 }
 
@@ -58,7 +76,8 @@ export const TEMPLATE_REGISTRY: TemplateConfig[] = [
         description: "Traditional grid layout. Best for official banking records.",
         icon: LayoutTemplate,
         receiptComponent: ClassicTemplate,
-        statementComponent: ClassicStatement
+        statementComponent: ClassicStatement,
+        disbursalComponent: ClassicDisbursal
     },
     {
         id: "modern",
@@ -66,7 +85,8 @@ export const TEMPLATE_REGISTRY: TemplateConfig[] = [
         description: "Contemporary design with soft colors and clear typography.",
         icon: Sparkles,
         receiptComponent: ModernTemplate,
-        statementComponent: ModernStatement
+        statementComponent: ModernStatement,
+        disbursalComponent: ModernDisbursal
     },
     {
         id: "corporate",
@@ -74,7 +94,8 @@ export const TEMPLATE_REGISTRY: TemplateConfig[] = [
         description: "Professional sidebar layout. Excellent for business branding.",
         icon: Building2,
         receiptComponent: CorporateTemplate,
-        statementComponent: CorporateStatement
+        statementComponent: CorporateStatement,
+        disbursalComponent: CorporateDisbursal
     },
     {
         id: "professional",
@@ -82,7 +103,8 @@ export const TEMPLATE_REGISTRY: TemplateConfig[] = [
         description: "Safe, standard blue & grey corporate look.",
         icon: Briefcase,
         receiptComponent: ProfessionalTemplate,
-        statementComponent: ProfessionalStatement
+        statementComponent: ProfessionalStatement,
+        disbursalComponent: ProfessionalDisbursal
     },
     {
         id: "elegant",
@@ -91,6 +113,7 @@ export const TEMPLATE_REGISTRY: TemplateConfig[] = [
         icon: Crown,
         receiptComponent: ElegantTemplate,
         statementComponent: ElegantStatement,
+        disbursalComponent: ElegantDisbursal,
         isPro: true
     },
     {
@@ -100,6 +123,7 @@ export const TEMPLATE_REGISTRY: TemplateConfig[] = [
         icon: ScanLine,
         receiptComponent: MinimalTemplate,
         statementComponent: MinimalStatement,
+        disbursalComponent: MinimalDisbursal,
         isPro: true
     },
     {
@@ -108,7 +132,8 @@ export const TEMPLATE_REGISTRY: TemplateConfig[] = [
         description: "Bold headers and strong contrast for impact.",
         icon: Zap,
         receiptComponent: BoldTemplate,
-        statementComponent: BoldStatement
+        statementComponent: BoldStatement,
+        disbursalComponent: BoldDisbursal
     },
     {
         id: "creative",
@@ -117,6 +142,7 @@ export const TEMPLATE_REGISTRY: TemplateConfig[] = [
         icon: Palette,
         receiptComponent: CreativeTemplate,
         statementComponent: CreativeStatement,
+        disbursalComponent: CreativeDisbursal,
         isPro: true
     },
     {
@@ -125,7 +151,8 @@ export const TEMPLATE_REGISTRY: TemplateConfig[] = [
         description: "Monospace digital aesthetic for tech-first firms.",
         icon: Cpu,
         receiptComponent: TechTemplate,
-        statementComponent: TechStatement
+        statementComponent: TechStatement,
+        disbursalComponent: TechDisbursal
     }
 ];
 

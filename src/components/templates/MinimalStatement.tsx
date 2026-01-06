@@ -115,6 +115,9 @@ export const MinimalStatement = ({ data, company }: StatementProps) => {
             {/* Footer */}
             <div className="mt-auto pt-8 border-t border-black flex justify-between items-center text-[10px] uppercase font-bold tracking-widest text-gray-400">
                 <p>{company.tagline}</p>
+                {company.showSignatory && (
+                    <p className="text-black">{company.signatoryText || "Authorized Signatory"}</p>
+                )}
                 <p>Page 01 / 01</p>
             </div>
 

@@ -18,11 +18,31 @@ import {
     ArrowUpRight,
     PanelLeftClose,
     PanelLeftOpen,
-    Activity // New Icon
+    Activity,
+    LogOut,
+    ShieldCheck // New Icon
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useAuth } from "@/components/providers/auth-provider";
+import { PERMISSIONS } from "@/lib/constants/permissions";
 
 const navItems = [
     { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -30,13 +50,64 @@ const navItems = [
     { title: "Loan Portfolio", href: "/loans", icon: PieChart },
     { title: "Statements", href: "/statements", icon: FileText },
     { title: "Customers", href: "/clients", icon: Users },
-    { title: "Activity", href: "/activity", icon: Activity }, // New Link
+    { title: "Team", href: "/team", icon: ShieldCheck }, // New Link
+    { title: "Activity", href: "/activity", icon: Activity },
     { title: "Settings", href: "/settings", icon: Settings },
 ];
 
 export function BlendedSidebar({ className }: { className?: string }) {
     const pathname = usePathname();
     const [isCollapsed, setIsCollapsed] = useState(false);
+    const { user, checkPermission, logout } = useAuth();
+
+    // Change Password State
+    const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
+    const [passwordState, setPasswordState] = useState({ current: '', new: '' });
+
+    const handleChangePassword = async () => {
+        if (!passwordState.current || !passwordState.new) return;
+        try {
+            const res = await fetch('/api/auth/change-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    currentPassword: passwordState.current,
+                    newPassword: passwordState.new
+                })
+            });
+
+            if (res.ok) {
+                // simple alert or toast if available, assuming generic success for now
+                alert("Password changed successfully");
+                setIsChangePasswordOpen(false);
+                setPasswordState({ current: '', new: '' });
+            } else {
+                const data = await res.json();
+                alert(data.error || "Failed to change password");
+            }
+        } catch (error) {
+            alert("Error changing password");
+        }
+    };
+
+    // Standard items that are always visible or basic access
+    // We can filter this list dynamically
+    const visibleNavItems = navItems.filter(item => {
+        if (item.href === '/loans') return checkPermission(PERMISSIONS.VIEW_LOANS);
+        if (item.href === '/team') return checkPermission(PERMISSIONS.VIEW_USERS);
+        if (item.href === '/clients') return checkPermission(PERMISSIONS.VIEW_CLIENTS);
+        if (item.href === '/activity') return checkPermission(PERMISSIONS.VIEW_ACTIVITY_LOG);
+        if (item.href === '/settings') return checkPermission(PERMISSIONS.VIEW_SETTINGS);
+        if (item.href === '/statements') return checkPermission(PERMISSIONS.VIEW_REPORTS);
+        if (item.href === '/dashboard') return checkPermission(PERMISSIONS.VIEW_DASHBOARD);
+        if (item.href === '/') return checkPermission(PERMISSIONS.CREATE_PAYMENT);
+        return true;
+    });
+
+    // Fallback for user name initials
+    const initials = user?.name
+        ? user.name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()
+        : "U";
 
     return (
         <aside
@@ -46,9 +117,7 @@ export function BlendedSidebar({ className }: { className?: string }) {
                 className
             )}
         >
-
-
-            {/* Toggle Button (Visible within layout if hover is tricky, placed at bottom usually, but let's put a clear one near brand for now) */}
+            {/* Brand Header */}
             <div className={cn("mb-8 flex items-center gap-3 transition-all duration-300", isCollapsed ? "justify-center px-0" : "px-2")}>
                 <div className="h-10 w-10 shrink-0 rounded-xl bg-primary shadow-lg shadow-primary/25 flex items-center justify-center text-primary-foreground ring-2 ring-white/10">
                     <Building2 className="h-6 w-6" />
@@ -61,14 +130,12 @@ export function BlendedSidebar({ className }: { className?: string }) {
                 )}
             </div>
 
-
-
             {/* Navigation Links */}
             <TooltipProvider delayDuration={0}>
                 <div className="space-y-1.5 flex-1 px-2 w-full">
                     {!isCollapsed && <p className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground/50 mb-4 pl-3 whitespace-nowrap">Menu</p>}
 
-                    {navItems.map((item) => {
+                    {visibleNavItems.map((item) => {
                         const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
 
                         const LinkContent = (
@@ -105,10 +172,7 @@ export function BlendedSidebar({ className }: { className?: string }) {
                 </div>
             </TooltipProvider>
 
-
-
-
-            {/* 5. User Profile & Toggle Footer */}
+            {/* User Profile & Toggle Footer */}
             <div className={cn("mt-auto w-full transition-all duration-300", isCollapsed ? "px-0 pb-4 items-center flex flex-col gap-4" : "px-3 pb-4")}>
 
                 {/* Island Container (Only in expanded mode) */}
@@ -117,23 +181,67 @@ export function BlendedSidebar({ className }: { className?: string }) {
                     !isCollapsed && "bg-muted/40 p-1.5 rounded-2xl border border-border/20 shadow-sm"
                 )}>
                     {/* User Profile */}
-                    <div className={cn(
-                        "flex items-center gap-3 rounded-xl transition-all cursor-pointer group",
-                        isCollapsed ? "justify-center h-10 w-10 p-0 hover:bg-muted/60 rounded-full" : "p-2 hover:bg-background hover:shadow-xs"
-                    )}>
-                        <div className="h-9 w-9 shrink-0 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary ring-1 ring-primary/20">
-                            AD
-                        </div>
-                        {!isCollapsed && (
-                            <>
-                                <div className="flex flex-col min-w-0 overflow-hidden">
-                                    <span className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors truncate">Admin User</span>
-                                    <span className="text-[11px] text-muted-foreground truncate font-medium">admin@fincorp.com</span>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <div className={cn(
+                                "flex items-center gap-3 rounded-xl transition-all cursor-pointer group",
+                                isCollapsed ? "justify-center h-10 w-10 p-0 hover:bg-muted/60 rounded-full" : "p-2 hover:bg-background hover:shadow-xs"
+                            )}>
+                                <div className="h-9 w-9 shrink-0 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary ring-1 ring-primary/20">
+                                    {initials}
                                 </div>
-                                <Settings className="h-4 w-4 ml-auto text-muted-foreground/40 group-hover:text-primary transition-colors" />
-                            </>
-                        )}
-                    </div>
+                                {!isCollapsed && (
+                                    <>
+                                        <div className="flex flex-col min-w-0 overflow-hidden text-left">
+                                            <span className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors truncate">{user?.name || 'User'}</span>
+                                            <span className="text-[11px] text-muted-foreground truncate font-medium">{user?.email || 'Loading...'}</span>
+                                        </div>
+                                        <Settings className="h-4 w-4 ml-auto text-muted-foreground/40 group-hover:text-primary transition-colors" />
+                                    </>
+                                )}
+                            </div>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-[200px]" sideOffset={10}>
+                            <DropdownMenuLabel>My Account ({user?.role})</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => setIsChangePasswordOpen(true)} className="cursor-pointer">
+                                <ShieldCheck className="mr-2 h-4 w-4" />
+                                <span>Change Password</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => logout()} className="text-red-600 focus:text-red-600 cursor-pointer">
+                                <LogOut className="mr-2 h-4 w-4" />
+                                <span>Log out</span>
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+
+                    {/* Change Password Dialog */}
+                    <Dialog open={isChangePasswordOpen} onOpenChange={setIsChangePasswordOpen}>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Change Password</DialogTitle>
+                            </DialogHeader>
+                            <div className="space-y-4 py-2">
+                                <div className="space-y-2">
+                                    <Label>Current Password</Label>
+                                    <Input
+                                        type="password"
+                                        value={passwordState.current}
+                                        onChange={(e) => setPasswordState({ ...passwordState, current: e.target.value })}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>New Password</Label>
+                                    <Input
+                                        type="password"
+                                        value={passwordState.new}
+                                        onChange={(e) => setPasswordState({ ...passwordState, new: e.target.value })}
+                                    />
+                                </div>
+                                <Button onClick={handleChangePassword} className="w-full">Update Password</Button>
+                            </div>
+                        </DialogContent>
+                    </Dialog>
 
                     {/* Toggle Button */}
                     <div className={cn("px-1", isCollapsed && "px-0")}>

@@ -18,7 +18,7 @@ const UserSchema = new mongoose.Schema({
 const Role = mongoose.models.Role || mongoose.model('Role', RoleSchema);
 const User = mongoose.models.User || mongoose.model('User', UserSchema);
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/loanerp';
+const MONGODB_URI = process.env.MONGODB_URI || process.env.DATABASE_URL || 'mongodb://localhost:27017/loanerp';
 
 const PERMISSIONS = {
     // User Management
@@ -76,6 +76,10 @@ const ROLES = [
 
 async function seed() {
   console.log('Connecting to MongoDB...');
+  // Mask the URI for security in logs
+  const maskedURI = MONGODB_URI.replace(/(:)([^@]+)(@)/, '$1*****$3');
+  console.log(`Target DB: ${maskedURI}`);
+  
   await mongoose.connect(MONGODB_URI);
   console.log('Connected.');
 
@@ -95,7 +99,7 @@ async function seed() {
     }
     //superadmin@fincorperp.com
     // 2. Create User
-    let superAdminUser = await User.findOne({ email: 'superadmin@fincorperp.com' });
+    let superAdminUser = await User.findOne({ email: 'admin@patnifinance.com' });
     if (!superAdminUser) {
       const password = await hash('admin123', 12);
       superAdminUser = await User.create({

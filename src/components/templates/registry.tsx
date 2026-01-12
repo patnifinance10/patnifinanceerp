@@ -7,7 +7,8 @@ import {
     Palette,
     Briefcase,
     Cpu,
-    Zap
+    Zap,
+    Languages
 } from "lucide-react";
 
 // Import all templates
@@ -47,6 +48,10 @@ import { TechTemplate } from "./TechTemplate";
 import { TechStatement } from "./TechStatement";
 import { TechDisbursal } from "./TechDisbursal";
 
+import { RegionalTemplate } from "./RegionalTemplate";
+import { RegionalStatement } from "./RegionalStatement";
+import { RegionalDisbursal } from "./RegionalDisbursal";
+
 export type TemplateId =
     | "classic"
     | "modern"
@@ -56,7 +61,8 @@ export type TemplateId =
     | "bold"
     | "creative"
     | "professional"
-    | "tech";
+    | "tech"
+    | "regional";
 
 export interface TemplateConfig {
     id: TemplateId;
@@ -153,6 +159,15 @@ export const TEMPLATE_REGISTRY: TemplateConfig[] = [
         receiptComponent: TechTemplate,
         statementComponent: TechStatement,
         disbursalComponent: TechDisbursal
+    },
+    {
+        id: "regional",
+        name: "Regional (Gujarati)",
+        description: "Traditional vernacular layout for local financing.",
+        icon: Languages,
+        receiptComponent: RegionalTemplate,
+        statementComponent: RegionalStatement,
+        disbursalComponent: RegionalDisbursal
     }
 ];
 

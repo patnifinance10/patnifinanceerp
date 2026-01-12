@@ -25,7 +25,8 @@ import {
     Palette,
     Sun,
     Moon,
-    Monitor
+    Monitor,
+    Download
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -59,6 +60,7 @@ const navItems = [
     { title: "Loan Portfolio", href: "/loans", icon: PieChart },
     { title: "Statements", href: "/statements", icon: FileText },
     { title: "Customers", href: "/clients", icon: Users },
+    { title: "Downloads", href: "/downloads", icon: Download },
     { title: "Team", href: "/team", icon: ShieldCheck }, // New Link
     { title: "Activity", href: "/activity", icon: Activity },
     { title: "Settings", href: "/settings", icon: Settings },

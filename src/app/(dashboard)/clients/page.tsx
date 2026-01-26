@@ -351,7 +351,6 @@ export default function ClientsPage() {
                                                 <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete Profile
                                             </Button>
                                         )}
-
                                         {checkPermission(PERMISSIONS.CREATE_LOAN) && (
                                             <Link href={`/loans/new?clientId=${selectedClient.clientId}`} passHref>
                                                 <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-md font-bold justify-start">

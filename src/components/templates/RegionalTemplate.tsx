@@ -65,7 +65,6 @@ const EditableField = ({
         </div>
     );
 };
-
 export const RegionalTemplate = ({ data, company, mode = 'view', onChange }: ReceiptProps) => {
 
     const handleChange = (field: string, val: string) => {

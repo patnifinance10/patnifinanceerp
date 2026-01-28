@@ -14,6 +14,7 @@ interface LoanDetails {
     indefiniteTenure: boolean;
     holidayHandling?: 'NextWorkingDay' | 'PreviousWorkingDay' | 'Ignore';
     gracePeriodDays?: number;
+    interestPaidInAdvance?: boolean;
 }
 
 
@@ -42,7 +43,8 @@ export const generateRepaymentSchedule = (details: LoanDetails): ScheduleItem[] 
         startDate,
         disbursementDate,
         indefiniteTenure,
-        holidayHandling
+        holidayHandling,
+        interestPaidInAdvance // Add this
     } = details;
 
     const schedule: ScheduleItem[] = [];
@@ -190,15 +192,55 @@ export const generateRepaymentSchedule = (details: LoanDetails): ScheduleItem[] 
         // --- Interest Only Logic ---
         const periodicInterest = Math.round(P * periodicRate);
 
-        for (let i = 1; i <= totalInstallments; i++) {
-            const isLast = i === totalInstallments;
-            const amount = isLast ? (P + periodicInterest) : periodicInterest;
-            const principalComponent = isLast ? P : 0;
-            const interestComponent = periodicInterest;
+        // If Indefinite, we just return empty as per logic above (handled at top).
+        // Fixed Tenure Logic:
+        
+        // If Interest Paid In Advance:
+        // 1. Total Installments = N (Interest) + 1 (Principal)
+        // 2. 1st Installment is immediate (Day 0) - handled by caller primarily, but here we set due dates.
+        //    Actually, caller sets startDate. If advance, startDate = disbursalDate.
+        // 3. We generate N interest installments.
+        // 4. We generate 1 final principal installment.
+        
+        const loopCount = interestPaidInAdvance ? totalInstallments + 1 : totalInstallments;
+
+        for (let i = 1; i <= loopCount; i++) {
+            let amount = 0;
+            let principalComponent = 0;
+            let interestComponent = 0;
+            
+            if (interestPaidInAdvance) {
+                // Advance Scheme:
+                // Inst 1..N: Interest Only
+                // Inst N+1: Principal Only
+                
+                if (i <= totalInstallments) {
+                    // Interest Installments
+                    amount = periodicInterest;
+                    interestComponent = periodicInterest;
+                    principalComponent = 0;
+                } else {
+                    // Final Principal Installment
+                    amount = P;
+                    interestComponent = 0;
+                    principalComponent = P;
+                }
+            } else {
+                 // Standard Scheme:
+                 // Inst 1..N-1: Interest Only
+                 // Inst N: Interest + Principal
+                 const isLast = i === totalInstallments;
+                 amount = isLast ? (P + periodicInterest) : periodicInterest;
+                 principalComponent = isLast ? P : 0;
+                 interestComponent = periodicInterest;
+            }
 
             const dueDate = adjustDateForHoliday(new Date(currentDate)); // Apply Holiday Logic
 
-            balance -= principalComponent;
+            if (principalComponent > 0) {
+                 balance -= principalComponent;
+            }
+            if(balance < 0) balance = 0;
 
             schedule.push({
                 installmentNo: i,
@@ -212,6 +254,12 @@ export const generateRepaymentSchedule = (details: LoanDetails): ScheduleItem[] 
             });
 
              // Increment Date
+             // If Advance, 1st installment is TODAY (Start Date).
+             // Checking if we should increment BEFORE or AFTER.
+             // Standard: StartDate is 1st Due Date. Next is +1 Month.
+             // Advance: StartDate is 1st Due Date. Next is +1 Month.
+             // So logic is same: Increment after pushing.
+             
              if (repaymentFrequency === 'Monthly') currentDate = addMonths(currentDate, 1);
              else if (repaymentFrequency === 'Weekly') currentDate = addWeeks(currentDate, 1);
              else currentDate = addDays(currentDate, 1);

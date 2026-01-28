@@ -33,6 +33,10 @@ export function calculateLoanState(loan: any): LoanState {
 
     // Next Due Date & Amount
     // Find first interest cycle in future, or first pending installment if schedule exists
+    // Next Due Date & Amount
+    // 1. Determine if the user is "Caught Up" with interest
+    const isCaughtUp = accruedInterest <= 1; // Tolerance for rounding errors
+    
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
@@ -40,7 +44,21 @@ export function calculateLoanState(loan: any): LoanState {
         if (e.type !== 'Interest') return false;
         const d = new Date(e.date);
         d.setHours(0, 0, 0, 0);
-        return d >= today;
+        
+        if (isCaughtUp) {
+            // If fully paid, the "Next Due" is the FIRST COMING future cycle
+            return d > today;
+        } else {
+            // If we owe money, we want to show the current relevant cycle
+            // If we are overdue, this might still return a future date if we don't look back?
+            // Actually, if we are overdue, the UI calculates "Overdue Since" separately below.
+            // So "Next Payment Date" field should probably reflect the FUTURE cycle if we want to show "Upcoming",
+            // OR the Current Cycle if it's "Current Due".
+            // Let's stick to standard practice: Next Billing Date.
+            // If Today is billing date and Unpaid -> Today is Next Due.
+            // If Today is billing date and Paid -> Next Month is Next Due.
+            return d >= today;
+        }
     });
 
     const nextDueDate = nextDueEntry ? nextDueEntry.date : null;

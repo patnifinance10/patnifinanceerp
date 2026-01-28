@@ -186,7 +186,9 @@ export async function POST(req: Request) {
         let netDisbursal = P - processingFeeAmount;
 
         if (loanScheme === "InterestOnly" && interestPaidInAdvance) {
-            netDisbursal -= firstMonthInterest;
+            // Old Logic: Deduct from Principal
+            // New Logic: Full Disbursal, Interest collected via separate Ledger Entry
+            // netDisbursal -= firstMonthInterest; 
         }
 
         // 6. Generate Repayment Schedule & Calculate First Installment Date
@@ -197,6 +199,7 @@ export async function POST(req: Request) {
         let firstInstallmentDate = new Date(disbursementDate);
 
         // If NOT interest paid in advance, First EMI is after 1 period
+        // If interest paid in advance, First EMI is NOW (Disbursement Date)
         if (!interestPaidInAdvance) {
             if (repaymentFrequency === 'Weekly') firstInstallmentDate = addWeeks(firstInstallmentDate, 1);
             else if (repaymentFrequency === 'Daily') firstInstallmentDate = addDays(firstInstallmentDate, 1);
@@ -219,7 +222,8 @@ export async function POST(req: Request) {
                 repaymentFrequency: repaymentFrequency as any,
                 startDate: firstInstallmentDate, // Pass CALCULATED First EMI Date
                 disbursementDate: new Date(), // Assuming disbursement happens NOW
-                indefiniteTenure: false
+                indefiniteTenure: false,
+                interestPaidInAdvance: !!interestPaidInAdvance
             });
 
 
@@ -244,6 +248,24 @@ export async function POST(req: Request) {
         // 7. Create Loan Record
         const loanId = `LN-${Date.now().toString().slice(-6)}`; 
         
+        // Handle Advance Interest Payment Status in Schedule if Needed
+        if (interestPaidInAdvance && schedule.length > 0) {
+            // Mark first installment as paid
+            schedule[0].status = 'paid';
+            schedule[0].paidAmount = schedule[0].amount;
+            schedule[0].paidDate = new Date();
+            
+            // Next payment becomes 2nd installment
+            if (schedule.length > 1) {
+                nextPaymentDate = schedule[1].dueDate;
+                nextPaymentAmount = schedule[1].amount;
+            } else {
+                 // Should not happen usually unless N=0, but valid for safety
+                 nextPaymentDate = null; 
+                 nextPaymentAmount = 0;
+            }
+        }
+
         const newLoan = await Loan.create({
             client: client._id,
             loanId,
@@ -288,18 +310,27 @@ export async function POST(req: Request) {
             disbursedBy: 'Admin User' 
         });
 
-        // 7. Log Activity
-        // Note: The frontend was logging activity, but backend logging is more secure/reliable.
-        // We can keep both or prefer backend.
-       /* await logActivity({
-            type: 'Loan',
-            title: 'Loan Disbursed',
-            entityName: `${firstName} ${lastName}`,
-            amount: -P,
-            action: 'Disbursed',
-            description: `Loan ${loanId} created for ${firstName} ${lastName}.`,
-            user: 'System' // Or actual user
-        });*/
+        // 7b. If Interest Paid In Advance, Create the Transaction & Handle Initial State
+        if (interestPaidInAdvance) {
+            // Update Transaction History for the Advance Payment
+             const advanceTxn = {
+                txnId: `TXN-ADV-${Date.now()}`,
+                date: new Date(disbursementDate),
+                amount: firstMonthInterest,
+                type: 'Interest', // Explicitly Interest
+                description: 'Interest Paid in Advance',
+                reference: 'Auto-Deducted / Pre-Paid',
+                paymentMode: 'System',
+                interestComponent: firstMonthInterest,
+                principalComponent: 0,
+                balanceAfter: P // Principal is still P until repaid at end
+            };
+
+            await Loan.findOneAndUpdate(
+                { _id: newLoan._id },
+                { $push: { transactions: advanceTxn } }
+            );
+        }
 
         return NextResponse.json({ success: true, loan: newLoan, client });
 

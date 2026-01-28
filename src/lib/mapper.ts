@@ -28,8 +28,8 @@ export function mapLoanToFrontend(backendLoan: any): LoanAccount {
             type: txn.type || 'EMI',
             refNo: txn.reference || txn.paymentMode || '-',
             balanceAfter: txn.balanceAfter || 0,
-            principalComponent: 0, // backend might not store this granularly in txn history yet
-            interestComponent: 0,
+            principalComponent: txn.principalComponent || 0, 
+            interestComponent: txn.interestComponent || 0,
             penalty: 0
         }));
     } else {

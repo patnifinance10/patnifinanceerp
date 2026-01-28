@@ -65,25 +65,29 @@ export const recalculateLedger = async (loanId: string) => {
     let cycleCursor = new Date(loan.disbursementDate);
     const today = new Date();
     
-    // Move to first cycle (e.g. 1 month after disbursal)
-    // NOTE: Interest is usually "Post-Paid" (Accrues at end of cycle).
-    // EXCEPT "Interest Paid in Advance".
+    // Logic: 
+    // Standard (Post-Paid): Interest accrues at END of period. (M1, M2...)
+    // Advance (Pre-Paid): Interest accrues at START of period. (M0, M1...)
     
     if (loan.interestPaidInAdvance) {
-         // It's pre-deducted, so first cycle interest is already handled? 
-         // Or just the first EMI?
-         // Usually implies strict upfront. Logic remains same but they paid it.
+        // Accrue immediately on Day 0
+        if (isBefore(cycleCursor, today) || isSameDay(cycleCursor, today)) {
+             cycleDates.push(new Date(cycleCursor));
+        }
     }
     
     // Generate Cycles
-    while (isBefore(cycleCursor, today)) {
+    while (true) { // Loop control inside
+        // Advance cursor
         if (loan.repaymentFrequency === 'Monthly') cycleCursor = addMonths(cycleCursor, 1);
         else if (loan.repaymentFrequency === 'Weekly') cycleCursor = addWeeks(cycleCursor, 1);
         else cycleCursor = addDays(cycleCursor, 1);
         
-        if (isBefore(cycleCursor, today) || isSameDay(cycleCursor, today)) {
-            cycleDates.push(new Date(cycleCursor));
-        }
+        // Break if future
+        if (isAfter(cycleCursor, today)) break;
+        
+        // Add to list
+        cycleDates.push(new Date(cycleCursor));
     }
 
     // Merge Events
@@ -127,17 +131,41 @@ export const recalculateLedger = async (loanId: string) => {
             interestAmount = Math.round(interestAmount);
             
             if (interestAmount > 0) {
-                // CAPITALIZATION (Compounding): Add interest directly to Principal
-                // This matches the client's spreadsheet where balance increases by interest amount.
-                currentState.outstandingPrincipal += interestAmount;
+                // ACCRUAL: Add interest to Accrued Interest (Not Principal)
+                // Defaulting to Simple Interest logic as per user requirement (Principal must stay same).
+                // Capitalization (Compounding) is only for specific loan types (not implemented here as default).
                 
-                // Add to Virtual Ledger
+                currentState.accruedInterest += interestAmount;
+
+                // Auto-deduct from Advance Wallet if available (e.g. Prepaid Interest)
+                if (currentState.advanceWalletBalance > 0) {
+                    const offset = Math.min(currentState.advanceWalletBalance, currentState.accruedInterest);
+                    if (offset > 0) {
+                        currentState.advanceWalletBalance -= offset;
+                        currentState.accruedInterest -= offset;
+                        currentState.totalPaidInterest += offset;
+                        
+                        // Add to Virtual Ledger
+                        currentState.virtualTransactions.push({
+                            date: event.date,
+                            type: 'Wallet Adjustment',
+                            debit: 0,
+                            credit: offset,
+                            balance: currentState.outstandingPrincipal + currentState.accruedInterest, 
+                            particulars: `Paid from Advance Wallet`
+                        });
+                    }
+                }
+                
+                // Add to Virtual Ledger (Interest Application)
                 currentState.virtualTransactions.push({
                     date: event.date,
                     type: 'Interest',
                     debit: interestAmount,
                     credit: 0,
-                    balance: currentState.outstandingPrincipal, 
+                    // Balance View: Principal + Accrued? Or just Principal? 
+                    // Usually Ledger shows Outstanding (P + I).
+                    balance: currentState.outstandingPrincipal + currentState.accruedInterest, 
                     particulars: `Interest Accrued`
                 });
             }
@@ -167,9 +195,14 @@ export const recalculateLedger = async (loanId: string) => {
              
              let allowPrincipalReduction = true;
              if (loan.loanScheme === 'InterestOnly') {
-                 // Only allow if Type is specifically 'Part Payment' or 'Closure' match
-                 // If Type is 'EMI' or 'General', we DO NOT reduce Principal.
+                 // ONLY allow 'Part Payment' or 'Closure' to reduce Principal
                  if (txn.type === 'EMI' || txn.type === 'Interest') {
+                     allowPrincipalReduction = false;
+                 }
+             } else {
+                 // For standard EMI loans, 'Interest' type transactions (like Advance Interest) should ALSO NOT reduce Principal usually.
+                 // They are strictly for Interest.
+                 if (txn.type === 'Interest') {
                      allowPrincipalReduction = false;
                  }
              }

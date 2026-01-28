@@ -369,7 +369,7 @@ export default function NewLoanPage() {
 
             // Handle Interest Paid In Advance
             if (formData.loanScheme === "InterestOnly" && formData.interestPaidInAdvance) {
-                netDisbursal -= firstMonthInterest;
+                // netDisbursal -= firstMonthInterest; // Changed: Full Disbursal, Interest collected via separate transaction
             }
 
             setCalculations({
@@ -710,7 +710,7 @@ export default function NewLoanPage() {
                                         </div>
                                         <div className="flex flex-col">
                                             <Label htmlFor="advance-interest" className="text-sm font-bold cursor-pointer text-foreground">Collect Interest in Advance</Label>
-                                            <span className="text-xs text-muted-foreground/80">Deduct first month's interest (<span className="font-mono font-bold">₹{calculations.firstMonthInterest?.toLocaleString() ?? 0}</span>) from the disbursement amount.</span>
+                                            <span className="text-xs text-muted-foreground/80">Collect first month's interest (<span className="font-mono font-bold">₹{calculations.firstMonthInterest?.toLocaleString() ?? 0}</span>) immediately.</span>
                                         </div>
                                     </div>
                                 )}
@@ -984,18 +984,20 @@ export default function NewLoanPage() {
                                             <span className="font-semibold text-red-200">- ₹{calculations.processingFeeAmount.toLocaleString()}</span>
                                         </div>
 
-                                        {formData.loanScheme === "InterestOnly" && formData.interestPaidInAdvance && (
-                                            <div className="flex justify-between text-sm">
-                                                <span className="text-primary-foreground/70">Interest (Advance)</span>
-                                                <span className="font-semibold text-red-200">- ₹{calculations.firstMonthInterest.toLocaleString()}</span>
-                                            </div>
-                                        )}
-
                                         <Separator className="bg-primary-foreground/10 my-2" />
                                         <div className="flex justify-between items-center pt-1">
                                             <span className="text-sm font-bold text-primary-foreground/90 uppercase">Net Cash to Handover</span>
                                             <span className="text-xl font-bold text-primary-foreground">₹{calculations.netDisbursal.toLocaleString()}</span>
                                         </div>
+
+                                        {formData.loanScheme === "InterestOnly" && formData.interestPaidInAdvance && (
+                                            <div className="mt-2 pt-2 border-t border-dashed border-primary-foreground/20">
+                                                <div className="flex justify-between text-xs text-primary-foreground/80">
+                                                    <span>Collect Advance Interest:</span>
+                                                    <span className="font-bold">₹{calculations.firstMonthInterest.toLocaleString()}</span>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
 
                                     <div className="flex justify-between items-center text-xs text-primary-foreground/50 px-1">

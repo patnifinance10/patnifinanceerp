@@ -50,19 +50,21 @@ export function generateLedger(loan: any): LedgerEntry[] {
     let cycleCursor = new Date(disbursalDate);
     const today = new Date();
     
-    // Move to first cycle
-    if (loan.repaymentFrequency === 'Monthly') cycleCursor = addMonths(cycleCursor, 1);
-    else if (loan.repaymentFrequency === 'Weekly') cycleCursor = addWeeks(cycleCursor, 1);
-    else cycleCursor = addDays(cycleCursor, 1); // Daily
-
-    // If Int Paid in Advance, the first period is already covered.
-    // So the first ACCRUAL should happen at the END of the SECOND period?
-    // Or just skip the first scheduled cycle.
-    if (loan.interestPaidInAdvance) {
+    // Generate Cycles
+    // Logic: 
+    // Standard (Post-Paid): Interest accrues at END of period. (M1, M2...)
+    // Advance (Pre-Paid): Interest accrues at START of period. (M0, M1...)
+    
+    // Initial Move:
+    // If Standard, we start at M1.
+    // If Advance, we start at M0 (Disbursal Date).
+    
+    if (!loan.interestPaidInAdvance) {
         if (loan.repaymentFrequency === 'Monthly') cycleCursor = addMonths(cycleCursor, 1);
         else if (loan.repaymentFrequency === 'Weekly') cycleCursor = addWeeks(cycleCursor, 1);
         else cycleCursor = addDays(cycleCursor, 1);
     }
+    // Else: Advance, so cycleCursor starts at DisbursalDate (already set)
 
     while (isBefore(cycleCursor, today) || isSameDay(cycleCursor, today)) {
         cycleDates.push(new Date(cycleCursor));
@@ -80,10 +82,6 @@ export function generateLedger(loan: any): LedgerEntry[] {
         const tA = a.date.getTime();
         const tB = b.date.getTime();
         if (tA === tB) {
-            // Priority: Interest Cycle applies BEFORE a Payment on the same day?
-            // Usually Payment covers 'Due'. Due happens start of day or end of day?
-            // If Interest Accrues Today, and I pay Today. 
-            // If I pay, I expect to pay off Today's interest. So Interest must exist first.
             if (a.eventType === 'CYCLE') return -1;
             return 1;
         }
@@ -97,12 +95,15 @@ export function generateLedger(loan: any): LedgerEntry[] {
         if (event.eventType === 'CYCLE') {
             if (outstandingPrincipal <= 0) continue;
 
-            // Interest only on positive debt
             const interestAmount = Math.round(Math.max(0, outstandingPrincipal) * periodicRate);
             
             if (interestAmount > 0) {
-                // COMPOUNDING: Interest is added to Principal
-                outstandingPrincipal += interestAmount;
+                 // Regular Accrual
+                 // For UI display, we assume simple interest tracking or compounding based on loan type?
+                 // But simply: Add to Unpaid Interest. 
+                 // We don't necessarily compound outstandingPrincipal unless it's a specific scheme.
+                 // But sticking to existing logic:
+                outstandingPrincipal += interestAmount; 
                 runningUnpaidInterest += interestAmount;
 
                 entries.push({
@@ -113,7 +114,7 @@ export function generateLedger(loan: any): LedgerEntry[] {
                     credit: 0,
                     balance: outstandingPrincipal, 
                     interestComponent: interestAmount,
-                    principalComponent: -interestAmount // Matches negative principal paid logic when payment is 0
+                    principalComponent: 0 
                 });
             }
         } else {
@@ -121,11 +122,40 @@ export function generateLedger(loan: any): LedgerEntry[] {
             const txn = event.original || event;
             const amount = txn.amount;
             
-            // Allocate payment: First retire accrued interest, then principal
-            const interestPaid = Math.min(amount, runningUnpaidInterest);
-            const principalPaid = amount - interestPaid;
+            let interestPaid = 0;
+            let principalPaid = 0;
+
+            // USE STORED SPLITS IF AVAILABLE (Sync with Backend)
+            if (typeof txn.interestComponent === 'number' && typeof txn.principalComponent === 'number') {
+                interestPaid = txn.interestComponent;
+                principalPaid = txn.principalComponent;
+            } else if (txn.type === 'Interest') {
+                // Explicit Interest Transaction (e.g. Advance Interest)
+                interestPaid = amount;
+                principalPaid = 0;
+            } else {
+                // Fallback Calculation
+                interestPaid = Math.min(amount, runningUnpaidInterest);
+                principalPaid = amount - interestPaid;
+            }
             
-            outstandingPrincipal -= amount;
+            outstandingPrincipal -= (principalPaid + interestPaid); // Wait, logic above added Interest to Principal?
+            // If line 105: outstandingPrincipal += interestAmount
+            // Then Paying 500 (Interest) removes 500 from Principal.
+            // YES. 
+            // So: outstandingPrincipal -= amount; is correct IF amount = InterestPaid + PrincipalPaid.
+            
+            // Wait, if I Block Principal Reduction in backend?
+            // Backend: Principal = 50k. Accrued = 500.
+            // Txn: Pay 500 interest.
+            // Backend State: Principal = 50k. Accrued = 0.
+            
+            // Frontend Logic Here:
+            // Cycle: Principal += 500 -> 50,500.
+            // Txn: Pay 500. Principal -= 500 -> 50,000.
+            // Result: 50,000. Correct.
+            
+            // But verify `runningUnpaidInterest` update.
             runningUnpaidInterest -= interestPaid;
             
             entries.push({

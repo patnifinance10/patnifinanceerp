@@ -185,13 +185,15 @@ const LoanSchema = new mongoose.Schema({
         },
         type: {
             type: String,
-            enum: ['EMI', 'Part Payment', 'Closure', 'Fee', 'Penalty'],
+            enum: ['EMI', 'Part Payment', 'Closure', 'Fee', 'Penalty', 'Interest'],
             default: 'EMI'
         },
         description: String,
         reference: String, // e.g., UPI Ref
         paymentMode: String, // Cash, UPI, etc.
-        balanceAfter: Number
+        balanceAfter: Number,
+        principalComponent: Number,
+        interestComponent: Number
     }],
 
     // Meta

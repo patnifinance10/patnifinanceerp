@@ -45,7 +45,7 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { format } from "date-fns";
 
-// ... imports
+// imports
 import { useSettings } from "@/components/providers/settings-provider";
 import { getTemplate } from "@/components/templates/registry";
 import { useEffect } from "react";

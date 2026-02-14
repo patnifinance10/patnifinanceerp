@@ -20,8 +20,15 @@ export function calculateLoanState(loan: any): LoanState {
     const totalPaid = history.reduce((sum, e) => sum + (e.credit || 0), 0);
     
     // Status Logic
-    let status = (loan.status || "Active").charAt(0).toUpperCase() + (loan.status || "Active").slice(1);
-    if (balance <= 0) status = "Closed";
+    let storedStatus = (loan.status || "Active").toLowerCase();
+    let status = storedStatus.charAt(0).toUpperCase() + storedStatus.slice(1);
+    
+    // Balance-based status override
+    if (balance > 0 && (storedStatus === "closed" || storedStatus === "settled")) {
+        status = "Active"; 
+    } else if (balance <= 0) {
+        status = "Closed";
+    }
     
     // Unpaid interest (sum of interest entries - sum of interest components in payments)
     const totalInterestAccrued = history.reduce((sum, e) => sum + (e.type === 'Interest' ? e.debit : 0), 0);

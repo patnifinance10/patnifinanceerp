@@ -23,12 +23,11 @@ export interface LedgerEntry {
 export function generateLedger(loan: any): LedgerEntry[] {
     // 1. Setup
     let entries: LedgerEntry[] = [];
-    const loanAmount = loan.loanAmount || loan.totalLoanAmount; // Handle mapper var
-    let outstandingPrincipal = loanAmount;
-    let accruedInterest = 0;
+    const loanAmount = loan.loanAmount || loan.totalLoanAmount; 
+    // State managed in Replay loop
     
     // Disbursal
-    const disbursalDate = loan.disbursalDate ? new Date(loan.disbursalDate) : (loan.disbursedDate ? new Date(loan.disbursedDate) : new Date());
+    const disbursalDate = loan.disbursementDate ? new Date(loan.disbursementDate) : (loan.disbursalDate ? new Date(loan.disbursalDate) : (loan.disbursedDate ? new Date(loan.disbursedDate) : new Date()));
     
     // Parse Dates helper
     const getDateObj = (d: any) => new Date(d);
@@ -91,23 +90,27 @@ export function generateLedger(loan: any): LedgerEntry[] {
         return tA - tB;
     });
 
-    // 3. Replay
+    // 3. Replay State Machine
     let runningUnpaidInterest = 0;
+    let currentPrincipal = loanAmount;
+    let runningTotalBalance = loanAmount;
 
     for (const event of allEvents) {
         if (event.eventType === 'CYCLE') {
-            if (outstandingPrincipal <= 0) continue;
-
-            const interestAmount = Math.round(Math.max(0, outstandingPrincipal) * periodicRate);
+            // Determine if we should still accrue
+            // In Fixed Tenure, we stop at tenure end? No, engine usually keeps accruing if balance remains.
+            // But if Principal is 0 on Reducing, interest is 0.
+            
+            let interestAmount = 0;
+            if (loan.interestType === 'Flat') {
+                interestAmount = Math.round(loanAmount * periodicRate);
+            } else {
+                interestAmount = Math.round(Math.max(0, currentPrincipal) * periodicRate);
+            }
             
             if (interestAmount > 0) {
-                 // Regular Accrual
-                 // For UI display, we assume simple interest tracking or compounding based on loan type?
-                 // But simply: Add to Unpaid Interest. 
-                 // We don't necessarily compound outstandingPrincipal unless it's a specific scheme.
-                 // But sticking to existing logic:
-                outstandingPrincipal += interestAmount; 
                 runningUnpaidInterest += interestAmount;
+                runningTotalBalance += interestAmount;
 
                 entries.push({
                     date: event.date.toISOString(),
@@ -115,9 +118,11 @@ export function generateLedger(loan: any): LedgerEntry[] {
                     type: "Interest",
                     debit: interestAmount,
                     credit: 0,
-                    balance: outstandingPrincipal, 
+                    balance: runningTotalBalance, 
                     interestComponent: interestAmount,
-                    principalComponent: 0 
+                    principalComponent: 0,
+                    principalBalance: currentPrincipal,
+                    interestBalance: runningUnpaidInterest
                 });
             }
         } else {
@@ -128,38 +133,21 @@ export function generateLedger(loan: any): LedgerEntry[] {
             let interestPaid = 0;
             let principalPaid = 0;
 
-            // USE STORED SPLITS IF AVAILABLE (Sync with Backend)
             if (typeof txn.interestComponent === 'number' && typeof txn.principalComponent === 'number') {
                 interestPaid = txn.interestComponent;
                 principalPaid = txn.principalComponent;
             } else if (txn.type === 'Interest') {
-                // Explicit Interest Transaction (e.g. Advance Interest)
                 interestPaid = amount;
                 principalPaid = 0;
             } else {
-                // Fallback Calculation
+                // Waterfall Allocation
                 interestPaid = Math.min(amount, runningUnpaidInterest);
                 principalPaid = amount - interestPaid;
             }
             
-            outstandingPrincipal -= (principalPaid + interestPaid); // Wait, logic above added Interest to Principal?
-            // If line 105: outstandingPrincipal += interestAmount
-            // Then Paying 500 (Interest) removes 500 from Principal.
-            // YES. 
-            // So: outstandingPrincipal -= amount; is correct IF amount = InterestPaid + PrincipalPaid.
-            
-            // Wait, if I Block Principal Reduction in backend?
-            // Backend: Principal = 50k. Accrued = 500.
-            // Txn: Pay 500 interest.
-            // Backend State: Principal = 50k. Accrued = 0.
-            
-            // Frontend Logic Here:
-            // Cycle: Principal += 500 -> 50,500.
-            // Txn: Pay 500. Principal -= 500 -> 50,000.
-            // Result: 50,000. Correct.
-            
-            // But verify `runningUnpaidInterest` update.
             runningUnpaidInterest -= interestPaid;
+            currentPrincipal -= principalPaid;
+            runningTotalBalance -= amount;
             
             entries.push({
                 date: new Date(txn.date).toISOString(),
@@ -167,49 +155,20 @@ export function generateLedger(loan: any): LedgerEntry[] {
                 type: "EMI",
                 debit: 0,
                 credit: amount,
-                balance: outstandingPrincipal,
+                balance: runningTotalBalance,
                 refNo: txn.reference || txn.refNo,
                 interestComponent: interestPaid,
                 principalComponent: principalPaid,
+                principalBalance: currentPrincipal,
+                interestBalance: runningUnpaidInterest,
                 isPayment: true
             });
         }
     }
     
-    // 4. Running Balance Calc
-    let runningBal = 0;
+    // 4. Final Formatting (Remove redundant map if already correct)
+    // The balance is already running correctly in the loop above.
     
-    // Sort Again just to be safe if Replay order was internal
-    // (Already sorted events, so push order is chronologic)
-    
-    // But we need to calculate 'Balance' field for each row.
-    // Definition of 'Balance' column in Statement:
-    // Is it 'Outstanding Principal'? Or 'Total Due'?
-    // Usually 'Total Due' (Princ + Accrued Int).
-    
-    // Re-calc running trace
-    let trackPrinc = loanAmount;
-    let trackInt = 0;
-    
-    // Wait, entries has 'Disbursal' at top.
-    // Disbursal: Debit 50k. Bal 50k.
-    // Int: Debit 500. Bal 50.5k.
-    // Pay: Credit 500. Bal 50k.
-    
-    entries = entries.map(e => {
-        if (e.type === 'Disbursal') {
-            runningBal = e.debit;
-        } else {
-            runningBal = runningBal + e.debit - e.credit;
-        }
-        return { ...e, balance: runningBal };
-    });
-    
-    // Format Dates
-    entries = entries.map(e => ({
-        ...e,
-        date: e.date // Keep ISO string for UI helpers
-    }));
-
+    // Format Dates (Already handled in loop)
     return entries;
 }

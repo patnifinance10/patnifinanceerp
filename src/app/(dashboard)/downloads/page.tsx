@@ -7,6 +7,7 @@ import { useReactToPrint } from "react-to-print";
 import { RegionalDisbursal } from "@/components/templates/RegionalDisbursal";
 import { RegionalTemplate } from "@/components/templates/RegionalTemplate";
 import { PatniReceiptTemplate } from "@/components/templates/PatniReceiptTemplate";
+import { LoanRecordTemplate } from "@/components/templates/LoanRecordTemplate";
 import { useSettings, CompanySettings } from "@/components/providers/settings-provider";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -17,6 +18,7 @@ export default function DownloadsPage() {
     const blankPromissoryRef = useRef<HTMLDivElement>(null);
     const blankVoucherRef = useRef<HTMLDivElement>(null);
     const blankPatniRef = useRef<HTMLDivElement>(null);
+    const blankLoanRecordRef = useRef<HTMLDivElement>(null);
 
     const handlePrintPatni = useReactToPrint({
         contentRef: blankPatniRef,
@@ -24,6 +26,18 @@ export default function DownloadsPage() {
         pageStyle: `
             @page { size: A4; margin: 0mm; }
             @media print { body { -webkit-print-color-adjust: exact; } }
+        `
+    });
+
+    const handlePrintLoanRecord = useReactToPrint({
+        contentRef: blankLoanRecordRef,
+        documentTitle: `Loan_Record_Register`,
+        pageStyle: `
+            @page { size: landscape; margin: 0mm; }
+            @media print { 
+                body { -webkit-print-color-adjust: exact; }
+                .landscape-container { width: 100vw !important; height: 100vh !important; }
+            }
         `
     });
 
@@ -61,14 +75,14 @@ export default function DownloadsPage() {
 
     // --- FILL & PRINT LOGIC ---
     const [isFillDialogOpen, setIsFillDialogOpen] = useState(false);
-    const [activeTemplate, setActiveTemplate] = useState<'promissory' | 'voucher' | 'cash_voucher' | 'patni' | null>(null);
+    const [activeTemplate, setActiveTemplate] = useState<'promissory' | 'voucher' | 'cash_voucher' | 'patni' | 'loan_record' | null>(null);
 
     const [templateData, setTemplateData] = useState<any>({});
 
     // --- SETTINGS OVERRIDE LOGIC ---
     const [templateOverrides, setTemplateOverrides] = useState<Record<string, Partial<CompanySettings>>>({});
     const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false);
-    const [settingsEditTarget, setSettingsEditTarget] = useState<'promissory' | 'voucher' | 'cash_voucher' | 'patni' | null>(null);
+    const [settingsEditTarget, setSettingsEditTarget] = useState<'promissory' | 'voucher' | 'cash_voucher' | 'patni' | 'loan_record' | null>(null);
     const [currentEditSettings, setCurrentEditSettings] = useState<Partial<CompanySettings>>({});
     const [isUploadingLogo, setIsUploadingLogo] = useState(false);
 
@@ -88,7 +102,7 @@ export default function DownloadsPage() {
         localStorage.setItem('templateCompanyOverrides', JSON.stringify(newOverrides));
     };
 
-    const openSettingsDialog = (type: 'promissory' | 'voucher' | 'cash_voucher' | 'patni') => {
+    const openSettingsDialog = (type: 'promissory' | 'voucher' | 'cash_voucher' | 'patni' | 'loan_record') => {
         setSettingsEditTarget(type);
         setCurrentEditSettings(templateOverrides[type] || {});
         setIsSettingsDialogOpen(true);
@@ -111,11 +125,11 @@ export default function DownloadsPage() {
         setIsSettingsDialogOpen(false);
     };
 
-    const getMergedCompany = (type: 'promissory' | 'voucher' | 'cash_voucher' | 'patni') => {
+    const getMergedCompany = (type: 'promissory' | 'voucher' | 'cash_voucher' | 'patni' | 'loan_record') => {
         return { ...companySettings, ...(templateOverrides[type] || {}) };
     };
 
-    const openFillDialog = (type: 'promissory' | 'voucher' | 'cash_voucher' | 'patni') => {
+    const openFillDialog = (type: 'promissory' | 'voucher' | 'cash_voucher' | 'patni' | 'loan_record') => {
         setActiveTemplate(type);
         setTemplateData({}); // Reset
         setIsFillDialogOpen(true);
@@ -125,6 +139,7 @@ export default function DownloadsPage() {
         if (activeTemplate === 'promissory') handlePrintPromissory();
         if (activeTemplate === 'voucher' || activeTemplate === 'cash_voucher') handlePrintVoucher();
         if (activeTemplate === 'patni') handlePrintPatni();
+        if (activeTemplate === 'loan_record') handlePrintLoanRecord();
     };
 
     const handleInputChange = (field: string, value: string) => {
@@ -257,30 +272,71 @@ export default function DownloadsPage() {
                 </div>
             </div>
 
+            {/* Loan Record Register Card */}
+            <div className="group relative overflow-hidden rounded-xl border bg-card text-card-foreground shadow-sm transition-all hover:shadow-md">
+                <div className="p-6">
+                    <div className="flex justify-between items-start mb-4">
+                        <div className="rounded-full w-12 h-12 bg-indigo-100 flex items-center justify-center text-indigo-600">
+                            <Download className="w-6 h-6" />
+                        </div>
+                        <Button variant="ghost" size="icon" onClick={() => openSettingsDialog('loan_record')} className="text-gray-400 hover:text-gray-900 z-10">
+                            <Settings2 className="w-5 h-5" />
+                        </Button>
+                    </div>
+                    <h3 className="text-xl font-semibold leading-none tracking-tight mb-2">Loan Record Register</h3>
+                    <p className="text-sm text-muted-foreground mb-6">
+                        Detailed landscape loan record table (Gujarati) for tracking debtor and guarantor info.
+                    </p>
+                    <div className="flex gap-2">
+                        <Button onClick={() => openFillDialog('loan_record')} variant="default" className="flex-1 gap-2 bg-indigo-600 hover:bg-indigo-700 text-white">
+                            <PenLine className="w-4 h-4" /> Fill & Print
+                        </Button>
+                        <Button onClick={() => handlePrintLoanRecord()} variant="outline" className="gap-2 border-indigo-200 hover:bg-indigo-50 text-indigo-700">
+                            <Printer className="w-4 h-4" /> Blank
+                        </Button>
+                    </div>
+                </div>
+                <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 pointer-events-none">
+                    <Download className="w-32 h-32" />
+                </div>
+            </div>
+
             {/* Hidden Print Content */}
             <div className="hidden">
                 <div ref={blankPromissoryRef}>
                     <RegionalDisbursal
-                        data={{}}
+                        data={activeTemplate === 'promissory' ? templateData : {}}
                         company={getMergedCompany('promissory')}
                     />
                 </div>
                 <div ref={blankVoucherRef}>
                     <RegionalTemplate
-                        data={{}}
+                        data={(activeTemplate === 'voucher' || activeTemplate === 'cash_voucher') ? templateData : {}}
                         company={getMergedCompany('voucher')}
                     />
                 </div>
                 <div ref={blankPatniRef}>
                     <PatniReceiptTemplate
-                        data={{}}
+                        data={activeTemplate === 'patni' ? templateData : {}}
                         company={getMergedCompany('patni')}
+                    />
+                </div>
+                <div ref={blankLoanRecordRef}>
+                    <LoanRecordTemplate
+                        data={activeTemplate === 'loan_record' ? templateData : {}}
+                        company={getMergedCompany('loan_record')}
                     />
                 </div>
             </div>
 
             {/* Fill Data Dialog (WYSIWYG) */}
-            <Dialog open={isFillDialogOpen} onOpenChange={setIsFillDialogOpen}>
+            <Dialog open={isFillDialogOpen} onOpenChange={(open) => {
+                setIsFillDialogOpen(open);
+                if (!open) {
+                    setActiveTemplate(null);
+                    setTemplateData({});
+                }
+            }}>
                 <DialogContent className="sm:max-w-[95vw] max-w-[95vw] w-full h-[95vh] flex flex-col p-0 overflow-hidden">
                     <DialogHeader className="px-6 pt-6 pb-2 shrink-0">
                         <DialogTitle>Fill & Print Preview</DialogTitle>
@@ -291,7 +347,7 @@ export default function DownloadsPage() {
 
                     <div className="flex-1 bg-slate-100 overflow-auto flex justify-center py-8">
                         {/* Wrapper to center and scale the A4 content */}
-                        <div className="scale-[0.6] sm:scale-[0.7] md:scale-[0.85] origin-top shadow-2xl bg-white border border-slate-200">
+                        <div className={`${activeTemplate === 'loan_record' ? 'scale-[0.5] sm:scale-[0.6] md:scale-[0.7] lg:scale-[0.9]' : 'scale-[0.6] sm:scale-[0.7] md:scale-[0.85]'} origin-top shadow-2xl bg-white border border-slate-200`}>
                             {activeTemplate === 'promissory' && (
                                 <RegionalDisbursal
                                     data={templateData}
@@ -317,7 +373,14 @@ export default function DownloadsPage() {
                                     onChange={(field, val) => handleInputChange(field, val)}
                                 />
                             )}
-
+                            {activeTemplate === 'loan_record' && (
+                                <LoanRecordTemplate
+                                    data={templateData}
+                                    company={getMergedCompany('loan_record')}
+                                    mode="edit"
+                                    onChange={(field, val) => handleInputChange(field, val)}
+                                />
+                            )}
                         </div>
                     </div>
 

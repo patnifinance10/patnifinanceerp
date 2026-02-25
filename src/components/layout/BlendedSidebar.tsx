@@ -146,23 +146,7 @@ export function BlendedSidebar({ className }: { className?: string }) {
     // But we want SEO/Layout stability.
     // Let's rely on isMounted for the user-dependent list if that's the cause.
 
-    const visibleNavItems = navItems.filter(item => {
-        // If not mounted yet, rely on server-safe permission check (usually false/empty if no user on server)
-        // If useAuth provides a user synchronously from localStorage, it causes mismatch.
-        // So we use 'isMounted' to force a re-render after hydration with the real user.
-        // BUT, stripping items causes layout shift.
-        // Ideally, we just render what the server rendered.
-        // If server rendered 'nothing' (no user), we render 'nothing' initially.
-        // If server rendered 'all' (if it had session), we render 'all'.
-
-        // Assuming Server has NO user context usually:
-        if (!isMounted && typeof window !== 'undefined') return false; // Force empty on initial client render to match server (if server is empty)
-        // Wait, if server rendered EMPTY (no user), and client renders EMPTY (forced), then it matches.
-        // Then useEffect sets mounted -> true, list populates -> IDs change (but legitimate re-render).
-
-        // HOWEVER, if we return `true` for everything, we might leak admin links?
-        // Let's stick to checkPermission but double check if it's the culprit.
-
+    const visibleNavItems = !isMounted ? navItems : navItems.filter(item => {
         if (item.href === '/loans') return checkPermission(PERMISSIONS.VIEW_LOANS);
         if (item.href === '/team') return checkPermission(PERMISSIONS.VIEW_USERS);
         if (item.href === '/clients') return checkPermission(PERMISSIONS.VIEW_CLIENTS);

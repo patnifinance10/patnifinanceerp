@@ -23,7 +23,7 @@ import {
   Check,
   CheckCircle2,
   Smartphone,
-  Calendar,
+  Calendar as CalendarIcon,
   Wallet,
   Building2,
   MoreVertical,
@@ -54,6 +54,13 @@ import {
   DialogContent,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { format, parseISO } from "date-fns";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/components/providers/auth-provider";
@@ -78,6 +85,7 @@ function QuickPaymentContent() {
   const [loans, setLoans] = useState<LoanAccount[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [query, setQuery] = useState("");
+  const [dueDateFilter, setDueDateFilter] = useState(""); // Format: YYYY-MM-DD
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   // Misc State
@@ -157,7 +165,6 @@ function QuickPaymentContent() {
         }
       } catch (error) {
         console.error("Failed to fetch loans:", error);
-        // toast.error("Failed to fetch loans"); 
       } finally {
         setIsLoading(false);
       }
@@ -166,6 +173,17 @@ function QuickPaymentContent() {
       fetchLoans();
     }
   }, [user]);
+
+  // Calculate Due Counts for Calendar
+  const dueCounts = loans.reduce((acc: Record<string, number>, loan) => {
+    if (loan.nextPaymentDate && loan.status !== 'Closed') {
+      const dateStr = loan.nextPaymentDate.split('T')[0];
+      acc[dateStr] = (acc[dateStr] || 0) + 1;
+    }
+    return acc;
+  }, {});
+
+  const dueDates = Object.keys(dueCounts).map(d => parseISO(d));
 
   // Handle Query Param Selection
   useEffect(() => {
@@ -184,11 +202,16 @@ function QuickPaymentContent() {
   }
 
   // Filter List
-  const filteredLoans = loans.filter(l =>
-    (l.customerName.toLowerCase().includes(query.toLowerCase()) ||
-      l.loanNumber.toLowerCase().includes(query.toLowerCase())) &&
-    l.status !== 'Closed' // Filter out fully paid/closed loans
-  ).sort((a, b) => {
+  const filteredLoans = loans.filter(l => {
+    const matchesSearch = (l.customerName.toLowerCase().includes(query.toLowerCase()) ||
+      l.loanNumber.toLowerCase().includes(query.toLowerCase()));
+
+    const matchesDueDate = dueDateFilter
+      ? l.nextPaymentDate && l.nextPaymentDate.startsWith(dueDateFilter)
+      : true;
+
+    return matchesSearch && matchesDueDate && l.status !== 'Closed';
+  }).sort((a, b) => {
     // Sort by due date (earliest first)
     const dateA = a.nextPaymentDate ? new Date(a.nextPaymentDate).getTime() : Number.MAX_SAFE_INTEGER;
     const dateB = b.nextPaymentDate ? new Date(b.nextPaymentDate).getTime() : Number.MAX_SAFE_INTEGER;
@@ -259,18 +282,6 @@ function QuickPaymentContent() {
     newPayments[index] = { ...newPayments[index], [field]: value };
     setPayments(newPayments);
 
-    // Auto-update Manual P/I if not in Custom mode but effectively in Int/Prin Only mode
-    // We check if manual values are set (implying a mode was active)
-    // Actually, checking the *intent* is hard without an explicit 'paymentType' state. 
-    // Let's infer: If manualInterest > 0 and manualPrincipal == 0, we might be in Interest Only.
-    // BUT user might have typed that manually.
-    // Better approach: Add a new state 'paymentType' to track this explicitly?
-    // For now, let's keep it simple: The Select `onValueChange` handles the SWITCH. 
-    // But if amount changes AFTER switch? We need to update.
-
-    // Quick Fix: If we have a single row and we detect "Interest Only" pattern (mI > 0, mP=0) 
-    // or "Principal Only" (mP > 0, mI=0) AND isManualBreakup is FALSE (meaning hidden mode), update.
-
     if (!isManualBreakup && newPayments.length === 1 && field === 'amount') {
       const amt = parseFloat(value || "0");
       if (manualInterest && manualPrincipal === "0") {
@@ -281,10 +292,6 @@ function QuickPaymentContent() {
     }
   };
 
-
-
-  // NOTE: This currently only updates local state. 
-  // To persist payments, we would need to POST to an API.
   const handlePayment = async () => {
     if (!selectedLoan) return;
 
@@ -326,10 +333,6 @@ function QuickPaymentContent() {
           loanNumber: selectedId, // matches loanId in backend
           payments: validPayments,
           date: contributionDate,
-          // NOTE: API expects narrative, and manual splits
-          // If manual splits are provided, check if total matches amount
-          // IF user enters P=X and I=Y, we can optionally sum them to get Amount if mode amount is empty?
-          // For now, let's keep it simple: User enters Total Amount in 'payments', and optionally P/I splits for ledger.
           manualPrincipal: manualPrincipal || undefined,
           manualInterest: manualInterest || undefined,
           narrative: narrative
@@ -413,18 +416,126 @@ function QuickPaymentContent() {
               </Badge>
             </div>
 
-            {/* Search Input */}
+            {/* Search Input & Date Filter */}
             <div className={cn(
-              "relative group w-full transition-all duration-300 overflow-hidden",
-              isCollapsed ? "h-0 opacity-0" : "h-9 opacity-100"
+              "space-y-2 w-full transition-all duration-300",
+              isCollapsed ? "h-0 opacity-0 overflow-hidden" : "opacity-100"
             )}>
-              <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                className="h-9 pl-9 text-sm transition-all shadow-none w-full bg-transparent border-muted-foreground/20 focus-visible:bg-white focus-visible:ring-primary/20"
-                placeholder="Search..."
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-              />
+              <div className="relative group">
+                <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  className="h-9 pl-9 text-sm transition-all shadow-none w-full bg-transparent border-muted-foreground/20 focus-visible:bg-white focus-visible:ring-primary/20"
+                  placeholder="Search..."
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                />
+              </div>
+              <div className="flex gap-2">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className={cn(
+                        "h-8 flex-1 justify-start text-left font-normal px-2 text-[11px] bg-muted/30 border-none",
+                        !dueDateFilter && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {dueDateFilter ? format(parseISO(dueDateFilter), "PPP") : <span>Filter by Due Date</span>}
+                      {dueDateFilter && (
+                        <div
+                          className="ml-auto hover:text-foreground"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDueDateFilter("");
+                          }}
+                        >
+                          <X className="h-3 w-3" />
+                        </div>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0 z-[60]" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={dueDateFilter ? parseISO(dueDateFilter) : undefined}
+                      onSelect={(date) => {
+                        if (date) {
+                          setDueDateFilter(format(date, "yyyy-MM-dd"));
+                        } else {
+                          setDueDateFilter("");
+                        }
+                      }}
+                      initialFocus
+                      modifiers={{
+                        hasDue: dueDates
+                      }}
+                      modifiersStyles={{
+                        hasDue: {
+                          fontWeight: 'bold',
+                          textDecoration: 'underline',
+                          textDecorationColor: 'var(--primary)',
+                          textDecorationThickness: '2px'
+                        }
+                      }}
+                    />
+                    {/* Legend */}
+                    <div className="p-3 border-t bg-muted/20 text-[10px] flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 text-muted-foreground">
+                        <div className="w-2 h-2 rounded-full bg-primary" />
+                        <span>Dates with active dues</span>
+                      </div>
+                      <Badge variant="outline" className="text-[9px] h-4">
+                        {Object.keys(dueCounts).length} Dates
+                      </Badge>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+                {dueDateFilter && filteredLoans.length > 0 && (
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8 text-primary border-primary/20 bg-primary/5 hover:bg-primary/10"
+                    title="Print Due List"
+                    onClick={() => {
+                      // Logic to print the current filtered list
+                      const printContent = `
+                        <div style="padding: 20px; font-family: sans-serif;">
+                          <h2 style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px;">Due List - ${new Date(dueDateFilter).toLocaleDateString('en-GB')}</h2>
+                          <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+                            <thead>
+                              <tr style="background: #f4f4f4;">
+                                <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Customer</th>
+                                <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Loan No</th>
+                                <th style="border: 1px solid #ddd; padding: 8px; text-align: right;">Amount Due</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              ${filteredLoans.map(l => `
+                                <tr>
+                                  <td style="border: 1px solid #ddd; padding: 8px;">${l.customerName}</td>
+                                  <td style="border: 1px solid #ddd; padding: 8px;">${l.loanNumber}</td>
+                                  <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">₹${(l.nextPaymentAmount || 0).toLocaleString()}</td>
+                                </tr>
+                              `).join('')}
+                            </tbody>
+                          </table>
+                          <div style="margin-top: 30px; text-align: right; font-weight: bold;">
+                            Total Due: ₹${filteredLoans.reduce((sum, l) => sum + (l.nextPaymentAmount || 0), 0).toLocaleString()}
+                          </div>
+                        </div>
+                      `;
+                      const win = window.open('', '_blank');
+                      win?.document.write(`<html><head><title>Due List</title></head><body>${printContent}</body></html>`);
+                      win?.document.close();
+                      win?.print();
+                    }}
+                  >
+                    <Printer className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
 

@@ -1,3 +1,5 @@
+export const SYSTEM_ROOT_EMAIL = 'admin@patnifinance.com';
+
 export const PERMISSIONS = {
     // User Management
     VIEW_DASHBOARD: 'view_dashboard', // New

@@ -39,7 +39,7 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { useAuth } from "@/components/providers/auth-provider";
-import { PERMISSIONS, PERMISSION_MATRIX } from "@/lib/constants/permissions";
+import { PERMISSIONS, PERMISSION_MATRIX, SYSTEM_ROOT_EMAIL } from "@/lib/constants/permissions";
 import { Badge } from "@/components/ui/badge";
 import { Loader, FullPageLoader } from "@/components/ui/loader";
 
@@ -599,9 +599,16 @@ export default function TeamPage() {
                                                     </div>
                                                 </TableCell>
                                                 <TableCell>
-                                                    <Badge variant="secondary" className="font-mono text-[10px] uppercase font-bold tracking-wider">
-                                                        {u.role?.name || 'Unknown'}
-                                                    </Badge>
+                                                    <div className="flex items-center gap-2">
+                                                        <Badge variant="secondary" className="font-mono text-[10px] uppercase font-bold tracking-wider">
+                                                            {u.role?.name || 'Unknown'}
+                                                        </Badge>
+                                                        {u.email === SYSTEM_ROOT_EMAIL && (
+                                                            <Badge className="bg-blue-50 text-blue-600 border-blue-200 uppercase text-[10px] px-2 font-bold tracking-wider pointer-events-none shadow-none flex gap-1 items-center">
+                                                                <Shield className="h-2.5 w-2.5" /> System
+                                                            </Badge>
+                                                        )}
+                                                    </div>
                                                 </TableCell>
                                                 <TableCell>
                                                     {(u.status === 'active' || !u.status) && (
@@ -657,7 +664,7 @@ export default function TeamPage() {
                                                         )}
 
                                                         {/* Block/Unblock - NOT for System Root */}
-                                                        {checkPermission(PERMISSIONS.EDIT_USER) && u.email !== 'superadmin@fincorperp.com' && (
+                                                        {checkPermission(PERMISSIONS.EDIT_USER) && u.email !== SYSTEM_ROOT_EMAIL && (
                                                             u.status === 'blocked' ? (
                                                                 <Button variant="ghost" size="icon" className="h-7 w-7 text-green-500 hover:text-green-600 hover:bg-green-50 cursor-pointer" onClick={() => handleUpdateStatus(u._id, 'active')} title="Unblock User">
                                                                     <Unlock className="h-3.5 w-3.5" />
@@ -706,7 +713,7 @@ export default function TeamPage() {
                                                         )}
 
                                                         {/* Delete - NOT for System Root */}
-                                                        {checkPermission(PERMISSIONS.DELETE_USER) && u.email !== 'superadmin@fincorperp.com' && (
+                                                        {checkPermission(PERMISSIONS.DELETE_USER) && u.email !== SYSTEM_ROOT_EMAIL && (
                                                             <Dialog open={isDeleteConfirmOpen && selectedUser?._id === u._id} onOpenChange={(open) => {
                                                                 setIsDeleteConfirmOpen(open);
                                                                 if (open) setSelectedUser(u);

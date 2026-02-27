@@ -5,7 +5,7 @@ import User from '@/lib/models/User';
 import Role from '@/lib/models/Role';
 import { verifyJWT, AUTH_COOKIE_NAME, hashPassword } from '@/lib/auth';
 import { cookies } from 'next/headers';
-import { PERMISSIONS } from '@/lib/constants/permissions';
+import { PERMISSIONS, SYSTEM_ROOT_EMAIL } from '@/lib/constants/permissions';
 
 async function checkAccess(requiredPermission: string) {
     const cookieStore = await cookies();
@@ -19,8 +19,6 @@ async function checkAccess(requiredPermission: string) {
 
     return payload.permissions?.includes(requiredPermission);
 }
-
-const SUPER_ADMIN_EMAIL = 'superadmin@fincorperp.com';
 
 // UPDATE USER (Admin Only)
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -39,10 +37,10 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         const targetUser = await User.findById(id);
         if (!targetUser) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
-        if (targetUser.email === SUPER_ADMIN_EMAIL) {
-             const { status, roleId } = body; // Use extracted body
-             if (status || roleId) {
-                return NextResponse.json({ error: 'Cannot change Role or Status of System Root user' }, { status: 403 });
+        if (targetUser.email === SYSTEM_ROOT_EMAIL) {
+             const { status, roleId, email } = body; // Use extracted body
+             if (status || roleId || email) {
+                return NextResponse.json({ error: 'Cannot change Role, Status, or Email of System Root user' }, { status: 403 });
              }
         }
 
@@ -89,7 +87,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
         const targetUser = await User.findById(id);
         if (!targetUser) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
-        if (targetUser.email === SUPER_ADMIN_EMAIL) {
+        if (targetUser.email === SYSTEM_ROOT_EMAIL) {
             return NextResponse.json({ error: 'Cannot delete System Root user' }, { status: 403 });
         }
 

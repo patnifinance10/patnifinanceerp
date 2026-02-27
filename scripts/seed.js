@@ -18,7 +18,7 @@ const UserSchema = new mongoose.Schema({
 const Role = mongoose.models.Role || mongoose.model('Role', RoleSchema);
 const User = mongoose.models.User || mongoose.model('User', UserSchema);
 
-const MONGODB_URI = process.env.MONGODB_URI || process.env.DATABASE_URL || 'mongodb://localhost:27017/loanerp';
+const MONGODB_URI = process.env.MONGODB_URI || process.env.DATABASE_URL || 'mongodb+srv://patnifinance10_db_user:VdkVlFwN4wqOgdhI@cluster0.wgdnbyw.mongodb.net/';
 
 const PERMISSIONS = {
     // User Management

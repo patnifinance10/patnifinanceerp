@@ -87,14 +87,14 @@ export const PatniReceiptTemplate = ({ data, company, mode = 'view', onChange }:
                 <div className="flex flex-col items-end gap-1 text-right">
                     {company.logoUrl ? (
                         /* eslint-disable-next-line @next/next/no-img-element */
-                        <img src={company.logoUrl} alt="Company Logo" className="max-h-16 w-auto object-contain" />
+                        <img src={company.logoUrl} alt="Company Logo" className="max-h-24 w-auto object-contain" />
                     ) : (
-                        <div className="h-16 w-16 bg-gray-100 flex items-center justify-center font-bold rounded text-teal-700 text-2xl shrink-0">
+                        <div className="h-24 w-24 bg-gray-100 flex items-center justify-center font-bold rounded text-teal-700 text-2xl shrink-0">
                             {company.name ? company.name.charAt(0) : 'C'}
                         </div>
                     )}
                     <div className="flex flex-col items-end">
-                        <h1 className="text-3xl font-bold tracking-tighter text-teal-700 italic leading-none">{company.name || "Company Name"}</h1>
+                        <h1 className="text-1xl font-bold tracking-tighter text-teal-700 italic leading-none">{company.name || "Company Name"}</h1>
                         <span className="text-[10px] uppercase text-gray-500 tracking-widest mt-1">{company.tagline || ""}</span>
                     </div>
                 </div>
